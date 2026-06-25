@@ -41,41 +41,50 @@ export async function createAccountAction(
   const { code, name, type, groupId, currency } = parsed.data;
   const ctx = { tenantId: user.tenant_id, userId: user.sub, permissions: user.permissions };
 
-  const result = await withTenantRLS(ctx, async (tx) => {
-    try {
-      const [inserted] = await tx
-        .insert(accounts)
-        .values({
-          tenantId: user.tenant_id,
-          code,
-          name,
-          type,
-          groupId: groupId?.trim() || null,
-          currency: currency?.trim() || null,
-          isSystem: false,
-          isActive: true,
-        })
-        .returning({ id: accounts.id });
+  let result: { duplicate: boolean; id: string | null };
+  try {
+    result = await withTenantRLS(ctx, async (tx) => {
+      try {
+        const [inserted] = await tx
+          .insert(accounts)
+          .values({
+            tenantId: user.tenant_id,
+            code,
+            name,
+            type,
+            groupId: groupId?.trim() || null,
+            currency: currency?.trim() || null,
+            isSystem: false,
+            isActive: true,
+          })
+          .returning({ id: accounts.id });
 
-      return { duplicate: false, id: inserted!.id };
-    } catch (err: unknown) {
-      if (err && typeof err === "object" && "code" in err && err.code === "23505") {
-        return { duplicate: true, id: null as string | null };
+        return { duplicate: false, id: inserted!.id };
+      } catch (err: unknown) {
+        if (err && typeof err === "object" && "code" in err && err.code === "23505") {
+          return { duplicate: true, id: null as string | null };
+        }
+        throw err;
       }
-      throw err;
-    }
-  });
+    });
+  } catch {
+    return { success: false, error: "Failed to create account." };
+  }
 
   if (result.duplicate) return { success: false, error: "Account code already exists." };
 
-  await createAuditLog({
-    tenantId: user.tenant_id,
-    userId: user.sub,
-    entity: "accounts",
-    entityId: result.id,
-    action: "account_created",
-    changes: { code, name, type },
-  });
+  try {
+    await createAuditLog({
+      tenantId: user.tenant_id,
+      userId: user.sub,
+      entity: "accounts",
+      entityId: result.id,
+      action: "account_created",
+      changes: { code, name, type },
+    });
+  } catch {
+    // non-fatal
+  }
 
   revalidatePath("/app/accounts/chart-of-accounts");
   return { success: true };

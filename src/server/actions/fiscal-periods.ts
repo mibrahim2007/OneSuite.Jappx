@@ -39,7 +39,7 @@ export async function createFiscalYearAction(
     permissions: user.permissions,
   };
 
-  let result: { duplicate: boolean; yearLabel: string; fiscalStartMonth: number };
+  let result: { tenantMissing: boolean; duplicate: boolean; yearLabel: string; fiscalStartMonth: number };
   try {
     result = await withTenantRLS(ctx, async (tx) => {
       // Fetch fiscalStartMonth inside the transaction to avoid TOCTOU with concurrent settings changes
@@ -49,7 +49,7 @@ export async function createFiscalYearAction(
         .where(eq(tenants.id, user.tenant_id))
         .limit(1);
 
-      if (!tenantRow) throw new Error("Tenant not found.");
+      if (!tenantRow) return { tenantMissing: true, duplicate: false, yearLabel: "", fiscalStartMonth: 0 };
 
       const fiscalStartMonth = tenantRow.fiscalStartMonth;
       const shortNext = String((startYear + 1) % 100).padStart(2, "0");
@@ -67,7 +67,7 @@ export async function createFiscalYearAction(
         )
         .limit(1);
 
-      if (existing) return { duplicate: true, yearLabel, fiscalStartMonth };
+      if (existing) return { tenantMissing: false, duplicate: true, yearLabel, fiscalStartMonth };
 
       const rows: (typeof fiscalPeriods.$inferInsert)[] = [];
       for (let i = 0; i < 12; i++) {
@@ -93,16 +93,15 @@ export async function createFiscalYearAction(
       }
 
       await tx.insert(fiscalPeriods).values(rows);
-      return { duplicate: false, yearLabel, fiscalStartMonth };
+      return { tenantMissing: false, duplicate: false, yearLabel, fiscalStartMonth };
     });
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : "";
-    if (msg === "Tenant not found.") return { success: false, error: "Tenant not found." };
     const code = (err as { code?: string })?.code;
     if (code === "23505") return { success: false, error: "Fiscal year already exists." };
     return { success: false, error: "Failed to create fiscal year." };
   }
 
+  if (result.tenantMissing) return { success: false, error: "Tenant not found." };
   if (result.duplicate) return { success: false, error: "Fiscal year already exists." };
 
   try {
