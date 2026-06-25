@@ -108,40 +108,49 @@ export async function updateAccountAction(
   const { name, type, groupId, currency } = parsed.data;
   const ctx = { tenantId: user.tenant_id, userId: user.sub, permissions: user.permissions };
 
-  const result = await withTenantRLS(ctx, async (tx) => {
-    const [existing] = await tx
-      .select({ id: accounts.id, isSystem: accounts.isSystem })
-      .from(accounts)
-      .where(and(eq(accounts.id, id), eq(accounts.tenantId, user.tenant_id)))
-      .limit(1);
-    if (!existing) return { notFound: true, system: false };
-    if (existing.isSystem) return { notFound: false, system: true };
+  let result: { notFound: boolean; system: boolean };
+  try {
+    result = await withTenantRLS(ctx, async (tx) => {
+      const [existing] = await tx
+        .select({ id: accounts.id, isSystem: accounts.isSystem })
+        .from(accounts)
+        .where(and(eq(accounts.id, id), eq(accounts.tenantId, user.tenant_id)))
+        .limit(1);
+      if (!existing) return { notFound: true, system: false };
+      if (existing.isSystem) return { notFound: false, system: true };
 
-    await tx
-      .update(accounts)
-      .set({
-        name,
-        type,
-        groupId: groupId?.trim() || null,
-        currency: currency?.trim() || null,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(accounts.id, id), eq(accounts.tenantId, user.tenant_id)));
+      await tx
+        .update(accounts)
+        .set({
+          name,
+          type,
+          groupId: groupId?.trim() || null,
+          currency: currency?.trim() || null,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(accounts.id, id), eq(accounts.tenantId, user.tenant_id)));
 
-    return { notFound: false, system: false };
-  });
+      return { notFound: false, system: false };
+    });
+  } catch {
+    return { success: false, error: "Failed to update account." };
+  }
 
   if (result.notFound) return { success: false, error: "Account not found." };
   if (result.system) return { success: false, error: "System accounts cannot be edited." };
 
-  await createAuditLog({
-    tenantId: user.tenant_id,
-    userId: user.sub,
-    entity: "accounts",
-    entityId: id,
-    action: "account_updated",
-    changes: { name, type },
-  });
+  try {
+    await createAuditLog({
+      tenantId: user.tenant_id,
+      userId: user.sub,
+      entity: "accounts",
+      entityId: id,
+      action: "account_updated",
+      changes: { name, type },
+    });
+  } catch {
+    // non-fatal
+  }
 
   revalidatePath("/app/accounts/chart-of-accounts");
   return { success: true };
