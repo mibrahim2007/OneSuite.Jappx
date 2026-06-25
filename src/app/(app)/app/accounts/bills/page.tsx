@@ -57,10 +57,11 @@ export default async function BillsPage() {
 
   const canCreate = user.permissions.includes("accounts:bill:create");
   const canManage = user.permissions.includes("accounts:bill:update");
+  const canDelete = user.permissions.includes("accounts:bill:delete");
 
   return (
     <div className="p-6">
-      <BillsList bills={rows} canCreate={canCreate} canManage={canManage} />
+      <BillsList bills={rows} canCreate={canCreate} canManage={canManage} canDelete={canDelete} />
     </div>
   );
 }

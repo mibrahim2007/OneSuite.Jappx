@@ -36,6 +36,7 @@ export const PERMISSION_CATALOG = [
   { code: 'accounts:bill:create',         module: 'accounts', resource: 'bill',      action: 'create',  description: 'Create vendor bills' },
   { code: 'accounts:bill:update',         module: 'accounts', resource: 'bill',      action: 'update',  description: 'Edit vendor bills' },
   { code: 'accounts:bill:delete',         module: 'accounts', resource: 'bill',      action: 'delete',  description: 'Delete draft vendor bills' },
+  { code: 'accounts:bill:post',           module: 'accounts', resource: 'bill',      action: 'post',    description: 'Post vendor bills to general ledger' },
   { code: 'accounts:payment:view',        module: 'accounts', resource: 'payment',   action: 'view',    description: 'View payments' },
   { code: 'accounts:payment:create',      module: 'accounts', resource: 'payment',   action: 'create',  description: 'Record payments' },
   { code: 'accounts:tax:view',            module: 'accounts', resource: 'tax',       action: 'view',    description: 'View tax rates' },

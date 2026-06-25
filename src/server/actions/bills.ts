@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { getActionUser } from "@/lib/auth/get-action-user";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -367,7 +367,7 @@ export async function postBillAction(id: string): Promise<{
   const user = await getActionUser();
   if (!user) return { success: false, error: "Not authenticated." };
 
-  const permError = requirePermission("accounts:bill:update", user);
+  const permError = requirePermission("accounts:bill:post", user);
   if (permError) return { success: false, error: permError.error };
 
   let result:
@@ -398,11 +398,11 @@ export async function postBillAction(id: string): Promise<{
             .where(eq(fiscalPeriods.id, bill.periodId))
             .limit(1);
 
-          if (period && period.status !== "open") {
-            return {
-              ok: false as const,
-              error: `Period ${period.name} is closed — posting not allowed.`,
-            };
+          if (!period || period.status !== "open") {
+            const msg = !period
+              ? "Fiscal period not found — posting not allowed."
+              : `Period ${period.name} is closed — posting not allowed.`;
+            return { ok: false as const, error: msg };
           }
         }
 
@@ -428,13 +428,12 @@ export async function postBillAction(id: string): Promise<{
         const taxRateMap = new Map<string, string | null>();
 
         if (taxRateIds.length > 0) {
-          for (const trId of taxRateIds) {
-            const [tr] = await tx
-              .select({ id: taxRates.id, accountId: taxRates.accountId })
-              .from(taxRates)
-              .where(and(eq(taxRates.id, trId), eq(taxRates.tenantId, user.tenant_id)))
-              .limit(1);
-            taxRateMap.set(trId, tr?.accountId ?? null);
+          const rows = await tx
+            .select({ id: taxRates.id, accountId: taxRates.accountId })
+            .from(taxRates)
+            .where(and(inArray(taxRates.id, taxRateIds), eq(taxRates.tenantId, user.tenant_id)));
+          for (const row of rows) {
+            taxRateMap.set(row.id, row.accountId ?? null);
           }
         }
 

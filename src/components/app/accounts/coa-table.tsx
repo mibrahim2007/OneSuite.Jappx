@@ -33,7 +33,7 @@ export function CoaTable({ accounts, groups, canCreate, canEdit }: CoaTableProps
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogKey, setDialogKey] = useState(0);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
-  const [togglePending, setTogglePending] = useState<string | null>(null);
+  const [togglePending, setTogglePending] = useState<Set<string>>(new Set());
   const [, startToggleTransition] = useTransition();
 
   const groupById = useMemo(
@@ -54,15 +54,20 @@ export function CoaTable({ accounts, groups, canCreate, canEdit }: CoaTableProps
   }
 
   function handleToggle(id: string, currentlyActive: boolean) {
-    setTogglePending(id);
+    setTogglePending((prev) => new Set(prev).add(id));
     startToggleTransition(async () => {
-      const result = await toggleAccountActiveAction(id, !currentlyActive);
-      setTogglePending(null);
-      if (!result.success) {
-        toast.error(result.error ?? "Failed to update status.");
-      } else {
-        router.refresh();
-        toast.success(currentlyActive ? "Account deactivated." : "Account activated.");
+      try {
+        const result = await toggleAccountActiveAction(id, !currentlyActive);
+        if (!result.success) {
+          toast.error(result.error ?? "Failed to update status.");
+        } else {
+          router.refresh();
+          toast.success(currentlyActive ? "Account deactivated." : "Account activated.");
+        }
+      } catch {
+        toast.error("Failed to update account status.");
+      } finally {
+        setTogglePending((prev) => { const n = new Set(prev); n.delete(id); return n; });
       }
     });
   }
@@ -149,10 +154,10 @@ export function CoaTable({ accounts, groups, canCreate, canEdit }: CoaTableProps
                         <Button
                           variant="ghost"
                           size="sm"
-                          disabled={togglePending === account.id}
+                          disabled={togglePending.has(account.id)}
                           onClick={() => handleToggle(account.id, account.isActive)}
                         >
-                          {togglePending === account.id
+                          {togglePending.has(account.id)
                             ? "…"
                             : account.isActive
                               ? "Deactivate"

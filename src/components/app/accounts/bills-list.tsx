@@ -16,6 +16,7 @@ type BillsListProps = {
   bills: BillRow[];
   canCreate: boolean;
   canManage: boolean;
+  canDelete: boolean;
 };
 
 function statusVariant(
@@ -30,7 +31,7 @@ function statusLabel(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-export function BillsList({ bills, canCreate, canManage }: BillsListProps) {
+export function BillsList({ bills, canCreate, canManage, canDelete }: BillsListProps) {
   const router = useRouter();
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(
@@ -222,7 +223,7 @@ export function BillsList({ bills, canCreate, canManage }: BillsListProps) {
                             )}
 
                             {/* Delete */}
-                            {isDraft && canCreate && (
+                            {isDraft && canDelete && (
                               <Button
                                 size="icon"
                                 variant="ghost"

@@ -6,7 +6,6 @@ import { and, eq } from "drizzle-orm";
 import { getActionUser } from "@/lib/auth/get-action-user";
 import { requirePermission } from "@/lib/auth/permissions";
 import { withTenantRLS } from "@/lib/db/with-tenant";
-import { db } from "@/lib/db";
 import { fiscalPeriods } from "@/lib/db/schema";
 import { tenants } from "@/lib/db/schema/platform";
 import { createAuditLog } from "@/lib/audit";
@@ -34,29 +33,29 @@ export async function createFiscalYearAction(
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid year." };
   }
 
-  const [tenantRow] = await db
-    .select({ fiscalStartMonth: tenants.fiscalStartMonth })
-    .from(tenants)
-    .where(eq(tenants.id, user.tenant_id))
-    .limit(1);
-
-  if (!tenantRow) return { success: false, error: "Tenant not found." };
-
-  const fiscalStartMonth = tenantRow.fiscalStartMonth;
-
-  const shortNext = String((startYear + 1) % 100).padStart(2, "0");
-  const yearLabel =
-    fiscalStartMonth === 1 ? `FY ${startYear}` : `FY ${startYear}-${shortNext}`;
-
   const ctx = {
     tenantId: user.tenant_id,
     userId: user.sub,
     permissions: user.permissions,
   };
 
-  let result: { duplicate: boolean };
+  let result: { duplicate: boolean; yearLabel: string; fiscalStartMonth: number };
   try {
     result = await withTenantRLS(ctx, async (tx) => {
+      // Fetch fiscalStartMonth inside the transaction to avoid TOCTOU with concurrent settings changes
+      const [tenantRow] = await tx
+        .select({ fiscalStartMonth: tenants.fiscalStartMonth })
+        .from(tenants)
+        .where(eq(tenants.id, user.tenant_id))
+        .limit(1);
+
+      if (!tenantRow) throw new Error("Tenant not found.");
+
+      const fiscalStartMonth = tenantRow.fiscalStartMonth;
+      const shortNext = String((startYear + 1) % 100).padStart(2, "0");
+      const yearLabel =
+        fiscalStartMonth === 1 ? `FY ${startYear}` : `FY ${startYear}-${shortNext}`;
+
       const [existing] = await tx
         .select({ id: fiscalPeriods.id })
         .from(fiscalPeriods)
@@ -68,7 +67,7 @@ export async function createFiscalYearAction(
         )
         .limit(1);
 
-      if (existing) return { duplicate: true };
+      if (existing) return { duplicate: true, yearLabel, fiscalStartMonth };
 
       const rows: (typeof fiscalPeriods.$inferInsert)[] = [];
       for (let i = 0; i < 12; i++) {
@@ -94,9 +93,11 @@ export async function createFiscalYearAction(
       }
 
       await tx.insert(fiscalPeriods).values(rows);
-      return { duplicate: false };
+      return { duplicate: false, yearLabel, fiscalStartMonth };
     });
   } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "Tenant not found.") return { success: false, error: "Tenant not found." };
     const code = (err as { code?: string })?.code;
     if (code === "23505") return { success: false, error: "Fiscal year already exists." };
     return { success: false, error: "Failed to create fiscal year." };
@@ -110,7 +111,7 @@ export async function createFiscalYearAction(
       userId: user.sub,
       entity: "fiscal_periods",
       action: "fiscal_year_created",
-      changes: { yearLabel, fiscalStartMonth },
+      changes: { yearLabel: result.yearLabel, fiscalStartMonth: result.fiscalStartMonth },
     });
   } catch {
     // non-fatal
