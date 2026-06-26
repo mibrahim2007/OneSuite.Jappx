@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { eq, and, desc, isNull, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   gpsDevices,
@@ -23,6 +23,10 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 }
 
 export async function POST(req: NextRequest) {
+  // Auth header existence check first — avoids leaking validation details to unauthenticated callers
+  const apiKey = req.headers.get("x-api-key");
+  if (!apiKey) return NextResponse.json({ error: "Missing x-api-key header." }, { status: 401 });
+
   let body: unknown;
   try {
     body = await req.json();
@@ -37,11 +41,7 @@ export async function POST(req: NextRequest) {
 
   const { device_id, lat, lng, speed, heading, odometer, event_type, timestamp } = parsed.data;
 
-  // Auth via API key header
-  const apiKey = req.headers.get("x-api-key");
-  if (!apiKey) return NextResponse.json({ error: "Missing x-api-key header." }, { status: 401 });
-
-  // Look up the device
+  // Look up device — apiKey matched here to authenticate
   const [device] = await db
     .select()
     .from(gpsDevices)
@@ -60,115 +60,135 @@ export async function POST(req: NextRequest) {
   const tenantId = device.tenantId;
   const vehicleId = device.vehicleId;
 
-  // Insert position ping
-  await db.insert(vehiclePositions).values({
-    tenantId,
-    vehicleId,
-    deviceId: device.id,
-    recordedAt,
-    lat: String(lat),
-    lng: String(lng),
-    speedKmh: speed != null ? String(speed) : null,
-    heading: heading != null ? String(heading) : null,
-    odometerKm: odometer != null ? String(odometer) : null,
-    eventType: event_type ?? "moving",
-  });
-
-  // Trip segment auto-detection from ignition events
-  if (event_type === "ignition_on") {
-    await db.insert(gpsTripSegments).values({
+  await db.transaction(async (tx) => {
+    // Insert position ping
+    await tx.insert(vehiclePositions).values({
       tenantId,
       vehicleId,
       deviceId: device.id,
-      startTime: recordedAt,
-      startLat: String(lat),
-      startLng: String(lng),
+      recordedAt,
+      lat: String(lat),
+      lng: String(lng),
+      speedKmh: speed != null ? String(speed) : null,
+      heading: heading != null ? String(heading) : null,
+      odometerKm: odometer != null ? String(odometer) : null,
+      eventType: event_type ?? "moving",
     });
-  } else if (event_type === "ignition_off") {
-    // Close the most recent open (endTime IS NULL) segment for this vehicle
-    const [openSeg] = await db
-      .select({ id: gpsTripSegments.id, startLat: gpsTripSegments.startLat, startLng: gpsTripSegments.startLng })
-      .from(gpsTripSegments)
-      .where(
-        and(
-          eq(gpsTripSegments.vehicleId, vehicleId),
-          eq(gpsTripSegments.tenantId, tenantId),
-          isNull(gpsTripSegments.endTime)
-        )
-      )
-      .orderBy(desc(gpsTripSegments.startTime))
-      .limit(1);
 
-    if (openSeg) {
-      const sLat = parseFloat(openSeg.startLat ?? "0");
-      const sLng = parseFloat(openSeg.startLng ?? "0");
-      const distKm = haversineMeters(sLat, sLng, lat, lng) / 1000;
-
-      await db
-        .update(gpsTripSegments)
-        .set({
-          endTime: recordedAt,
-          endLat: String(lat),
-          endLng: String(lng),
-          distanceKm: String(distKm.toFixed(2)),
+    // Trip segment auto-detection from ignition events
+    if (event_type === "ignition_on") {
+      await tx.insert(gpsTripSegments).values({
+        tenantId,
+        vehicleId,
+        deviceId: device.id,
+        startTime: recordedAt,
+        startLat: String(lat),
+        startLng: String(lng),
+      });
+    } else if (event_type === "ignition_off") {
+      // Close the most recent open segment for this vehicle
+      const [openSeg] = await tx
+        .select({
+          id: gpsTripSegments.id,
+          startLat: gpsTripSegments.startLat,
+          startLng: gpsTripSegments.startLng,
         })
-        .where(eq(gpsTripSegments.id, openSeg.id));
-    }
-  }
-
-  // Geofence checks (circle only) — state-tracked to emit enter/exit once per transition
-  const fences = await db
-    .select()
-    .from(geofences)
-    .where(and(eq(geofences.tenantId, tenantId), eq(geofences.isActive, true)));
-
-  for (const fence of fences) {
-    if (fence.type !== "circle" || !fence.centerLat || !fence.centerLng || !fence.radiusM) continue;
-    const dist = haversineMeters(
-      parseFloat(fence.centerLat),
-      parseFloat(fence.centerLng),
-      lat,
-      lng
-    );
-    const inside = dist <= parseFloat(fence.radiusM);
-
-    const [lastAlert] = await db
-      .select({ eventType: geofenceAlerts.eventType })
-      .from(geofenceAlerts)
-      .where(
-        and(
-          eq(geofenceAlerts.tenantId, tenantId),
-          eq(geofenceAlerts.vehicleId, vehicleId),
-          eq(geofenceAlerts.geofenceId, fence.id)
+        .from(gpsTripSegments)
+        .where(
+          and(
+            eq(gpsTripSegments.vehicleId, vehicleId),
+            eq(gpsTripSegments.tenantId, tenantId),
+            isNull(gpsTripSegments.endTime)
+          )
         )
-      )
-      .orderBy(desc(geofenceAlerts.triggeredAt))
-      .limit(1);
+        .orderBy(desc(gpsTripSegments.startTime))
+        .limit(1);
 
-    const wasInside = lastAlert?.eventType === "enter";
+      if (openSeg) {
+        // Guard against NULL startLat/startLng — schema allows null, distance falls back to 0
+        const sLat = openSeg.startLat != null ? parseFloat(openSeg.startLat) : null;
+        const sLng = openSeg.startLng != null ? parseFloat(openSeg.startLng) : null;
+        const distKm =
+          sLat != null && sLng != null ? haversineMeters(sLat, sLng, lat, lng) / 1000 : 0;
 
-    if (inside && !wasInside) {
-      await db.insert(geofenceAlerts).values({
-        tenantId,
-        geofenceId: fence.id,
-        vehicleId,
-        eventType: "enter",
-        triggeredAt: recordedAt,
-        lat: String(lat),
-        lng: String(lng),
-      });
-    } else if (!inside && wasInside) {
-      await db.insert(geofenceAlerts).values({
-        tenantId,
-        geofenceId: fence.id,
-        vehicleId,
-        eventType: "exit",
-        triggeredAt: recordedAt,
-        lat: String(lat),
-        lng: String(lng),
-      });
+        await tx
+          .update(gpsTripSegments)
+          .set({
+            endTime: recordedAt,
+            endLat: String(lat),
+            endLng: String(lng),
+            distanceKm: String(distKm.toFixed(2)),
+          })
+          .where(eq(gpsTripSegments.id, openSeg.id));
+      }
     }
-  }
+
+    // Geofence checks (circle only) — batch last-alert lookup to avoid N+1 query per fence
+    const fences = await tx
+      .select()
+      .from(geofences)
+      .where(and(eq(geofences.tenantId, tenantId), eq(geofences.isActive, true)));
+
+    const activeFences = fences.filter(
+      (f) => f.type === "circle" && f.centerLat && f.centerLng && f.radiusM
+    );
+
+    if (activeFences.length > 0) {
+      // Single query: latest alert per geofence for this vehicle
+      const recentAlerts = await tx
+        .selectDistinctOn([geofenceAlerts.geofenceId], {
+          geofenceId: geofenceAlerts.geofenceId,
+          eventType: geofenceAlerts.eventType,
+        })
+        .from(geofenceAlerts)
+        .where(
+          and(
+            eq(geofenceAlerts.tenantId, tenantId),
+            eq(geofenceAlerts.vehicleId, vehicleId),
+            inArray(
+              geofenceAlerts.geofenceId,
+              activeFences.map((f) => f.id)
+            )
+          )
+        )
+        .orderBy(geofenceAlerts.geofenceId, desc(geofenceAlerts.triggeredAt));
+
+      const lastAlertMap = new Map(recentAlerts.map((a) => [a.geofenceId, a.eventType]));
+
+      for (const fence of activeFences) {
+        const dist = haversineMeters(
+          parseFloat(fence.centerLat!),
+          parseFloat(fence.centerLng!),
+          lat,
+          lng
+        );
+        const inside = dist <= parseFloat(fence.radiusM!);
+        const wasInside = lastAlertMap.get(fence.id) === "enter";
+
+        if (inside && !wasInside) {
+          await tx.insert(geofenceAlerts).values({
+            tenantId,
+            geofenceId: fence.id,
+            vehicleId,
+            eventType: "enter",
+            triggeredAt: recordedAt,
+            lat: String(lat),
+            lng: String(lng),
+          });
+        } else if (!inside && wasInside) {
+          await tx.insert(geofenceAlerts).values({
+            tenantId,
+            geofenceId: fence.id,
+            vehicleId,
+            eventType: "exit",
+            triggeredAt: recordedAt,
+            lat: String(lat),
+            lng: String(lng),
+          });
+        }
+      }
+    }
+  });
 
   return NextResponse.json({ ok: true });
 }

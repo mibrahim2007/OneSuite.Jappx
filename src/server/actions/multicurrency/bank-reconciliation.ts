@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 import { getActionUser } from "@/lib/auth/get-action-user";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -100,15 +100,37 @@ export async function matchStatementLineAction(
   const perm = requirePermission("accounts:journal:create", user);
   if (perm) return { success: false, error: perm.error };
 
+  let errorMsg: string | null = null;
   try {
     await withTenantRLS(ctx, async (tx) => {
-      await tx.update(bankStatementLines)
+      // If matching (not clearing), guard against the same journal line being double-matched
+      if (journalLineId) {
+        const [alreadyUsed] = await tx
+          .select({ id: bankStatementLines.id })
+          .from(bankStatementLines)
+          .where(
+            and(
+              eq(bankStatementLines.tenantId, user.tenant_id),
+              eq(bankStatementLines.matchedJournalLineId, journalLineId),
+              ne(bankStatementLines.id, lineId)
+            )
+          )
+          .limit(1);
+        if (alreadyUsed) {
+          errorMsg = "This journal line is already matched to another statement line.";
+          return;
+        }
+      }
+
+      await tx
+        .update(bankStatementLines)
         .set({ matchedJournalLineId: journalLineId })
         .where(and(eq(bankStatementLines.id, lineId), eq(bankStatementLines.tenantId, user.tenant_id)));
     });
   } catch {
     return { success: false, error: "Failed to match line." };
   }
+  if (errorMsg) return { success: false, error: errorMsg };
 
   revalidatePath("/app/accounts/bank-reconciliation");
   return { success: true };
