@@ -145,7 +145,7 @@ export function AdminHeader({
 
             <DropdownMenuItem
               onSelect={() => {
-                router.push("/api/auth/logout" as Route);
+                window.location.href = "/api/auth/logout";
               }}
             >
               <LogOut className="mr-2 size-4" aria-hidden="true" />
