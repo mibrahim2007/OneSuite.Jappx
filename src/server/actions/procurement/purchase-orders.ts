@@ -6,7 +6,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { requirePermission } from "@/lib/auth/permissions";
 import { getActionUser } from "@/lib/auth/get-action-user";
 import { withTenantRLS } from "@/lib/db/with-tenant";
-import { purchaseOrders, poLines, requisitions } from "@/lib/db/schema";
+import { purchaseOrders, poLines, requisitions, approvalRequests, approvalSteps } from "@/lib/db/schema";
 import { taxRates } from "@/lib/db/schema/settings";
 import { createAuditLog } from "@/lib/audit";
 import { purchaseOrderSchema } from "@/lib/validations/procurement";
@@ -199,6 +199,23 @@ export async function updatePoStatusAction(
         .update(purchaseOrders)
         .set({ status: newStatus, updatedAt: new Date() })
         .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.tenantId, user.tenant_id)));
+
+      // On submit: create approval request + broadcast step
+      if (newStatus === "submitted") {
+        const [approvalReq] = await tx
+          .insert(approvalRequests)
+          .values({
+            tenantId: user.tenant_id,
+            entity: "purchase_order",
+            entityId: id,
+            requestedBy: user.sub,
+          })
+          .returning({ id: approvalRequests.id });
+        await tx.insert(approvalSteps).values({
+          requestId: approvalReq!.id,
+          stepNo: 1,
+        });
+      }
     });
   } catch {
     return { success: false, error: "Failed to update PO status." };

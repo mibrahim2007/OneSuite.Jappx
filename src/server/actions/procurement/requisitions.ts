@@ -6,7 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { requirePermission } from "@/lib/auth/permissions";
 import { getActionUser } from "@/lib/auth/get-action-user";
 import { withTenantRLS } from "@/lib/db/with-tenant";
-import { requisitions, requisitionLines } from "@/lib/db/schema";
+import { requisitions, requisitionLines, approvalRequests, approvalSteps } from "@/lib/db/schema";
 import { createAuditLog } from "@/lib/audit";
 import { requisitionSchema } from "@/lib/validations/procurement";
 
@@ -146,6 +146,23 @@ export async function updateRequisitionStatusAction(
         .update(requisitions)
         .set({ status: newStatus })
         .where(and(eq(requisitions.id, id), eq(requisitions.tenantId, user.tenant_id)));
+
+      // On submit: create approval request + broadcast step
+      if (newStatus === "submitted") {
+        const [approvalReq] = await tx
+          .insert(approvalRequests)
+          .values({
+            tenantId: user.tenant_id,
+            entity: "requisition",
+            entityId: id,
+            requestedBy: user.sub,
+          })
+          .returning({ id: approvalRequests.id });
+        await tx.insert(approvalSteps).values({
+          requestId: approvalReq!.id,
+          stepNo: 1,
+        });
+      }
     });
   } catch {
     return { success: false, error: "Failed to update status." };

@@ -12,6 +12,7 @@ export * from "./inventory";    // Epic 7
 export * from "./procurement";  // Epic 8
 // export * from "./scm";        // legacy placeholder
 export * from "./crm";          // Epic 9
+export * from "./approvals";    // Epic 11
 // export * from "./hrm";        // Epic 13-14
 // export * from "./fleet";      // Epic 12
-// export * from "./maintenance"; // Epic 11
+// export * from "./maintenance"; // Epic 11 R&M
