@@ -213,6 +213,27 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     requiredPerms: ["hrm:leave:view"],
   },
   {
+    module: "hrm",
+    href: "/app/hrm/payroll/runs",
+    label: "Payroll Runs",
+    icon: ScrollText,
+    requiredPerms: ["hrm:payroll:view"],
+  },
+  {
+    module: "hrm",
+    href: "/app/hrm/payroll/structures",
+    label: "Salary Structures",
+    icon: Settings2,
+    requiredPerms: ["hrm:payroll:view"],
+  },
+  {
+    module: "hrm",
+    href: "/app/hrm/payroll/my-payslips",
+    label: "My Payslips",
+    icon: FileText,
+    requiredPerms: ["hrm:payslip:view"],
+  },
+  {
     module: "fleet",
     href: "/app/fleet/vehicles",
     label: "Vehicles",

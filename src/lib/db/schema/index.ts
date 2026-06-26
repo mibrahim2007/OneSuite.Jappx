@@ -17,3 +17,4 @@ export * from "./payments";     // Epic 6.4
 export * from "./hrm";          // Epic 13 HRM
 export * from "./fleet";       // Epic 12
 export * from "./maintenance"; // P2-E1 R&M
+export * from "./payroll";    // P2-E5 Payroll
