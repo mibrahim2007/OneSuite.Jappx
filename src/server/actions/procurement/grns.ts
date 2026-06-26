@@ -199,7 +199,7 @@ export async function postGrnAction(
         // Increment received_qty on the linked PO line if present
         if (line.poLineId && UUID_RE.test(line.poLineId)) {
           const [poLine] = await tx
-            .select({ receivedQty: poLines.receivedQty })
+            .select({ receivedQty: poLines.receivedQty, quantity: poLines.quantity })
             .from(poLines)
             .where(
               and(eq(poLines.id, line.poLineId), eq(poLines.tenantId, user.tenant_id))
@@ -207,6 +207,10 @@ export async function postGrnAction(
             .limit(1);
           if (poLine) {
             const newReceivedQty = parseFloat(poLine.receivedQty) + qty;
+            if (newReceivedQty > parseFloat(poLine.quantity)) {
+              error = `GRN line quantity exceeds PO ordered quantity for item ${line.itemId}.`;
+              return;
+            }
             await tx
               .update(poLines)
               .set({ receivedQty: String(newReceivedQty) })

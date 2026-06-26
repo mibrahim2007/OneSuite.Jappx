@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   gpsDevices,
@@ -85,22 +85,21 @@ export async function POST(req: NextRequest) {
       startLng: String(lng),
     });
   } else if (event_type === "ignition_off") {
-    // Close the most recent open segment for this vehicle
+    // Close the most recent open (endTime IS NULL) segment for this vehicle
     const [openSeg] = await db
       .select({ id: gpsTripSegments.id, startLat: gpsTripSegments.startLat, startLng: gpsTripSegments.startLng })
       .from(gpsTripSegments)
       .where(
         and(
           eq(gpsTripSegments.vehicleId, vehicleId),
-          eq(gpsTripSegments.tenantId, tenantId)
+          eq(gpsTripSegments.tenantId, tenantId),
+          isNull(gpsTripSegments.endTime)
         )
       )
       .orderBy(desc(gpsTripSegments.startTime))
       .limit(1);
 
-    if (openSeg && !openSeg.startLat) {
-      // skip — no open segment
-    } else if (openSeg) {
+    if (openSeg) {
       const sLat = parseFloat(openSeg.startLat ?? "0");
       const sLng = parseFloat(openSeg.startLng ?? "0");
       const distKm = haversineMeters(sLat, sLng, lat, lng) / 1000;
@@ -117,7 +116,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Geofence checks (circle only)
+  // Geofence checks (circle only) — state-tracked to emit enter/exit once per transition
   const fences = await db
     .select()
     .from(geofences)
@@ -132,13 +131,38 @@ export async function POST(req: NextRequest) {
       lng
     );
     const inside = dist <= parseFloat(fence.radiusM);
-    if (inside) {
-      // Insert enter alert (simplified — no previous-state tracking)
+
+    const [lastAlert] = await db
+      .select({ eventType: geofenceAlerts.eventType })
+      .from(geofenceAlerts)
+      .where(
+        and(
+          eq(geofenceAlerts.tenantId, tenantId),
+          eq(geofenceAlerts.vehicleId, vehicleId),
+          eq(geofenceAlerts.geofenceId, fence.id)
+        )
+      )
+      .orderBy(desc(geofenceAlerts.triggeredAt))
+      .limit(1);
+
+    const wasInside = lastAlert?.eventType === "enter";
+
+    if (inside && !wasInside) {
       await db.insert(geofenceAlerts).values({
         tenantId,
         geofenceId: fence.id,
         vehicleId,
         eventType: "enter",
+        triggeredAt: recordedAt,
+        lat: String(lat),
+        lng: String(lng),
+      });
+    } else if (!inside && wasInside) {
+      await db.insert(geofenceAlerts).values({
+        tenantId,
+        geofenceId: fence.id,
+        vehicleId,
+        eventType: "exit",
         triggeredAt: recordedAt,
         lat: String(lat),
         lng: String(lng),

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { getActionUser } from "@/lib/auth/get-action-user";
@@ -96,13 +96,16 @@ export async function launchCampaignAction(campaignId: string): Promise<{ succes
 
   const criteria = campaign.targetCriteria as Record<string, string> | null;
 
-  // Gather recipients from leads (filtered by status if specified)
-  const targetLeads = await db
+  // Gather recipients from leads with emails, respecting targetLeadStatus criteria
+  const leadsConditions = [
+    eq(leads.tenantId, user.tenant_id),
+    isNotNull(leads.email),
+    ...(criteria?.leadStatus ? [eq(leads.status, criteria.leadStatus)] : []),
+  ];
+  const recipients = await db
     .select({ id: leads.id, email: leads.email, name: leads.name })
-    .from(leads).where(eq(leads.tenantId, user.tenant_id));
-
-  // Filter leads that have emails
-  const recipients = targetLeads.filter((l) => !!l.email);
+    .from(leads)
+    .where(and(...leadsConditions));
 
   const ctx = { tenantId: user.tenant_id, userId: user.sub, permissions: user.permissions };
 
@@ -114,9 +117,9 @@ export async function launchCampaignAction(campaignId: string): Promise<{ succes
           recipients.map((l) => ({
             tenantId: user.tenant_id,
             campaignId,
-            contactType: "lead",
+            contactType: "lead" as const,
             contactId: l.id,
-            email: l.email,
+            email: l.email!,
             name: l.name || null,
             sentAt: new Date(),
           }))

@@ -68,6 +68,7 @@ export async function decideApprovalStepAction(
           entity: approvalRequests.entity,
           entityId: approvalRequests.entityId,
           status: approvalRequests.status,
+          requestedBy: approvalRequests.requestedBy,
         })
         .from(approvalRequests)
         .where(
@@ -81,6 +82,10 @@ export async function decideApprovalStepAction(
       if (!request) { errorMsg = "Approval request not found."; return; }
       if (request.status !== "pending") {
         errorMsg = "This approval request is already closed.";
+        return;
+      }
+      if (request.requestedBy && request.requestedBy === user.sub) {
+        errorMsg = "You cannot approve a request you submitted.";
         return;
       }
 
@@ -100,11 +105,30 @@ export async function decideApprovalStepAction(
         .set({ status: decision, comment: comment ?? null, actedAt: new Date() })
         .where(eq(approvalSteps.id, stepId));
 
-      // Update the request
+      // Only close the request when rejected OR all steps are now decided
+      let requestStatus: "pending" | "approved" | "rejected" = "pending";
+      if (decision === "rejected") {
+        requestStatus = "rejected";
+      } else {
+        const remaining = await tx
+          .select({ id: approvalSteps.id })
+          .from(approvalSteps)
+          .where(
+            and(
+              eq(approvalSteps.requestId, request.id),
+              eq(approvalSteps.status, "pending")
+            )
+          );
+        if (remaining.length === 0) requestStatus = "approved";
+      }
+
       await tx
         .update(approvalRequests)
-        .set({ status: decision, updatedAt: new Date() })
+        .set({ status: requestStatus, updatedAt: new Date() })
         .where(eq(approvalRequests.id, request.id));
+
+      // Only update the source entity when the request reaches a terminal state
+      if (requestStatus === "pending") return;
 
       // Update the source entity status
       if (request.entity === "requisition") {
