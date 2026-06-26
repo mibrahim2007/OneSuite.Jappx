@@ -113,13 +113,23 @@ export function PayrollRunDetail({ run, payslips, accounts, canRun }: Props) {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Payables Account (CR) *</label>
+              <label className="text-sm font-medium">Payables Account — Net Salary (CR) *</label>
               <select name="payableAccountId" required className={SELECT_CLASS}>
                 <option value="">Select account…</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
                 ))}
               </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Deductions Payable Account (CR)</label>
+              <select name="deductionsPayableAccountId" className={SELECT_CLASS}>
+                <option value="">Same as payables account</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>{a.code} — {a.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">Optional — for EOBI, tax withholdings etc.</p>
             </div>
             {postState?.success === false && (
               <p className="text-sm text-destructive">{postState.error}</p>

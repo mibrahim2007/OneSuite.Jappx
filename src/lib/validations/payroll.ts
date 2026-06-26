@@ -21,4 +21,5 @@ export const postPayrollSchema = z.object({
   runId: z.string().uuid(),
   salaryExpenseAccountId: z.string().uuid("Select salary expense account."),
   payableAccountId: z.string().uuid("Select payable account."),
+  deductionsPayableAccountId: z.string().uuid("Select deductions payable account.").optional(),
 });

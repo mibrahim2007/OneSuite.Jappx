@@ -100,7 +100,7 @@ export async function launchCampaignAction(campaignId: string): Promise<{ succes
   const leadsConditions = [
     eq(leads.tenantId, user.tenant_id),
     isNotNull(leads.email),
-    ...(criteria?.leadStatus ? [eq(leads.status, criteria.leadStatus)] : []),
+    ...(criteria?.leadStatus ? [eq(leads.status, criteria.leadStatus as "converted" | "new" | "contacted" | "qualified" | "unqualified")] : []),
   ];
   const recipients = await db
     .select({ id: leads.id, email: leads.email, name: leads.name })

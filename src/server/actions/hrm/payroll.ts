@@ -246,7 +246,7 @@ export async function postPayrollAction(
   if (!parsed.success)
     return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
 
-  const { runId, salaryExpenseAccountId, payableAccountId } = parsed.data;
+  const { runId, salaryExpenseAccountId, payableAccountId, deductionsPayableAccountId } = parsed.data;
 
   const ctx = { tenantId: user.tenant_id, userId: user.sub, permissions: user.permissions };
   try {
@@ -260,6 +260,7 @@ export async function postPayrollAction(
       if (!run) throw new Error("Payroll run not found.");
       if (run.status !== "processing" && run.status !== "approved")
         throw new Error("Payroll must be in processing or approved status to post.");
+      if (run.journalId != null) throw new Error("Payroll has already been posted to GL.");
 
       const totalGross = parseFloat(run.totalGross ?? "0");
       const totalNet = parseFloat(run.totalNet ?? "0");
@@ -318,12 +319,12 @@ export async function postPayrollAction(
         description: `Net salaries payable ${run.periodMonth}`,
       });
 
-      // CR Deductions payable (if any)
+      // CR Deductions payable (if any) — separate account when provided
       if (totalDeductions > 0) {
         await tx.insert(journalLines).values({
           tenantId: user.tenant_id,
           journalId: journal!.id,
-          accountId: payableAccountId,
+          accountId: deductionsPayableAccountId ?? payableAccountId,
           debit: "0",
           credit: String(totalDeductions),
           description: `Deductions payable ${run.periodMonth}`,
