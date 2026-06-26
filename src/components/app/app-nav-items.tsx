@@ -15,6 +15,9 @@ import {
   UserRound,
   Truck,
   Wrench,
+  ClipboardList,
+  ShoppingCart,
+  PackageCheck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -91,6 +94,27 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Inv. Settings",
     icon: Settings2,
     requiredPerms: ["scm:item:view"],
+  },
+  {
+    module: "scm",
+    href: "/app/procurement/requisitions",
+    label: "Requisitions",
+    icon: ClipboardList,
+    requiredPerms: ["scm:requisition:view"],
+  },
+  {
+    module: "scm",
+    href: "/app/procurement/purchase-orders",
+    label: "Purchase Orders",
+    icon: ShoppingCart,
+    requiredPerms: ["scm:po:view"],
+  },
+  {
+    module: "scm",
+    href: "/app/procurement/grns",
+    label: "Goods Receipts",
+    icon: PackageCheck,
+    requiredPerms: ["scm:grn:view"],
   },
   {
     module: "crm",
