@@ -89,6 +89,7 @@ export const fuelLogs = pgTable("fuel_logs", {
   cost: numeric("cost", { precision: 15, scale: 4 }).notNull(),
   odometer: numeric("odometer", { precision: 12, scale: 2 }),
   station: text("station"),
+  journalId: uuid("journal_id"),
 });
 
 export const vehicleDocuments = pgTable("vehicle_documents", {

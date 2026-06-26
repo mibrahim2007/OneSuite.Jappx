@@ -58,15 +58,18 @@ export async function postFuelCostsAction(
         return { ok: false as const, error: "GL mappings not configured. Set Fleet Fuel Expense and Fleet Payable accounts in Settings → GL Mappings." };
       }
 
-      // Sum fuel costs for the period
+      // Sum only unposted fuel costs for the period
+      const unpostedFilter = and(
+        eq(fuelLogs.tenantId, user.tenant_id),
+        gte(fuelLogs.fuelDate, fromDate),
+        lte(fuelLogs.fuelDate, toDate),
+        isNull(fuelLogs.journalId),
+      );
+
       const [totals] = await tx
         .select({ total: sql<string>`SUM(${fuelLogs.cost})` })
         .from(fuelLogs)
-        .where(and(
-          eq(fuelLogs.tenantId, user.tenant_id),
-          gte(fuelLogs.fuelDate, fromDate),
-          lte(fuelLogs.fuelDate, toDate)
-        ));
+        .where(unpostedFilter);
 
       const total = parseFloat(totals?.total ?? "0");
       if (total <= 0) return { ok: false as const, error: "No fuel costs found in the selected date range." };
@@ -104,6 +107,12 @@ export async function postFuelCostsAction(
           description: `Fleet fuel payable ${fromDate}–${toDate}`,
         },
       ]);
+
+      // Stamp all posted rows so they cannot be double-posted
+      await tx
+        .update(fuelLogs)
+        .set({ journalId: journal!.id })
+        .where(unpostedFilter);
 
       return { ok: true as const, journalId: journal!.id };
     });
