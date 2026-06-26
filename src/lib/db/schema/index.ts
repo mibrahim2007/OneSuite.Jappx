@@ -15,5 +15,5 @@ export * from "./crm";          // Epic 9
 export * from "./approvals";    // Epic 11
 export * from "./payments";     // Epic 6.4
 // export * from "./hrm";        // Epic 13-14
-// export * from "./fleet";      // Epic 12
-// export * from "./maintenance"; // Epic 11 R&M
+export * from "./fleet";       // Epic 12
+export * from "./maintenance"; // P2-E1 R&M
