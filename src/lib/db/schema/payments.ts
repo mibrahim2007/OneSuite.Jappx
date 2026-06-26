@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, text, numeric, date, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, text, numeric, char, date, timestamp } from "drizzle-orm/pg-core";
 import { tenants } from "./platform";
 import { accounts } from "./accounts";
 import { contacts } from "./contacts";
@@ -20,6 +20,8 @@ export const payments = pgTable("payments", {
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
   paymentDate: date("payment_date").notNull(),
   reference: text("reference"),
+  currencyCode: char("currency_code", { length: 3 }).notNull().default("PKR"),
+  exchangeRate: numeric("exchange_rate", { precision: 18, scale: 6 }).notNull().default("1"),
   journalId: uuid("journal_id").references(() => journals.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
