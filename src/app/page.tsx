@@ -3,6 +3,9 @@ import { sql } from "drizzle-orm";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+// DB check must run at request time; build-time env can't reach the Supabase pooler
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   let dbStatus: "connected" | "error" | "no-env" = "no-env";
 
