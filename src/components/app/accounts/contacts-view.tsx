@@ -7,6 +7,7 @@ import { Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { exportToCsv } from "@/lib/utils/export-csv";
 import {
   Dialog,
   DialogContent,
@@ -157,13 +158,35 @@ export function ContactsView({ contacts, canManage }: ContactsViewProps) {
 
   return (
     <div className="space-y-6">
-      {canManage && (
-        <div className="flex justify-end">
-          <Button size="sm" onClick={openCreate}>
-            New Contact
-          </Button>
+      <div className="flex items-center justify-between">
+        <div />
+        <div className="flex items-center gap-2">
+          {contacts.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToCsv("contacts", contacts as unknown as Record<string, unknown>[], [
+                  { key: "code", label: "Code" },
+                  { key: "name", label: "Name" },
+                  { key: "type", label: "Type" },
+                  { key: "email", label: "Email" },
+                  { key: "phone", label: "Phone" },
+                  { key: "paymentTermsDays", label: "Payment Terms (days)" },
+                  { key: "isActive", label: "Active" },
+                ])
+              }
+            >
+              Export CSV
+            </Button>
+          )}
+          {canManage && (
+            <Button size="sm" onClick={openCreate}>
+              New Contact
+            </Button>
+          )}
         </div>
-      )}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>

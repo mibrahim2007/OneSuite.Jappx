@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Route } from "next";
 import { Search } from "lucide-react";
@@ -16,6 +16,7 @@ import {
   CommandItem,
   CommandSeparator,
 } from "@/components/ui/command";
+import type { SearchResult } from "@/app/api/search/route";
 
 const RECENT_KEY = "app-recent-pages";
 const MAX_RECENT = 5;
@@ -49,6 +50,10 @@ export function CommandPalette({ navItems }: { navItems: NavItem[] }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [recent, setRecent] = useState<RecentPage[]>([]);
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track recent pages whenever pathname changes
   useEffect(() => {
@@ -58,8 +63,41 @@ export function CommandPalette({ navItems }: { navItems: NavItem[] }) {
 
   // Load recent pages when dialog opens
   useEffect(() => {
-    if (open) setRecent(getRecentPages());
+    if (open) {
+      setRecent(getRecentPages());
+      setQuery("");
+      setSearchResults([]);
+    }
   }, [open]);
+
+  // Debounced record search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (query.length < 2) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `/api/search?q=${encodeURIComponent(query)}`
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { results: SearchResult[] };
+          setSearchResults(data.results);
+        }
+      } catch {
+        // silent — search is non-critical
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
 
   // ⌘K / Ctrl+K shortcut
   useEffect(() => {
@@ -81,6 +119,12 @@ export function CommandPalette({ navItems }: { navItems: NavItem[] }) {
     [router]
   );
 
+  const filteredNav = query.length >= 2
+    ? navItems.filter((item) =>
+        item.label.toLowerCase().includes(query.toLowerCase())
+      )
+    : navItems;
+
   return (
     <>
       {/* Trigger button — visible in header on md+ */}
@@ -99,41 +143,100 @@ export function CommandPalette({ navItems }: { navItems: NavItem[] }) {
       </Button>
 
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <Command>
-          <CommandInput placeholder="Search pages and modules..." />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search pages and records..."
+            value={query}
+            onValueChange={setQuery}
+          />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            {query.length < 2 ? (
+              <>
+                <CommandEmpty>Start typing to search…</CommandEmpty>
+                {recent.length > 0 && (
+                  <CommandGroup heading="Recent">
+                    {recent.map((page) => (
+                      <CommandItem
+                        key={page.href}
+                        value={page.href}
+                        onSelect={() => navigate(page.href)}
+                      >
+                        {page.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+                {recent.length > 0 && navItems.length > 0 && (
+                  <CommandSeparator />
+                )}
+                {navItems.length > 0 && (
+                  <CommandGroup heading="Navigation">
+                    {navItems.map((item) => (
+                      <CommandItem
+                        key={item.href}
+                        value={item.href}
+                        onSelect={() => navigate(item.href)}
+                      >
+                        {item.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+              </>
+            ) : (
+              <>
+                {searching && (
+                  <CommandGroup heading="Records">
+                    <CommandItem disabled value="__searching__">
+                      <span className="text-muted-foreground text-sm">Searching…</span>
+                    </CommandItem>
+                  </CommandGroup>
+                )}
 
-            {recent.length > 0 && (
-              <CommandGroup heading="Recent">
-                {recent.map((page) => (
-                  <CommandItem
-                    key={page.href}
-                    value={page.label}
-                    onSelect={() => navigate(page.href)}
-                  >
-                    {page.label}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
+                {!searching && searchResults.length > 0 && (
+                  <CommandGroup heading="Records">
+                    {searchResults.map((r) => (
+                      <CommandItem
+                        key={`${r.type}-${r.id}`}
+                        value={`${r.type}-${r.id}`}
+                        onSelect={() => navigate(r.href)}
+                      >
+                        <span className="text-xs text-muted-foreground w-24 shrink-0">
+                          {r.type}
+                        </span>
+                        <span className="font-medium">{r.title}</span>
+                        {r.subtitle && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {r.subtitle}
+                          </span>
+                        )}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
 
-            {recent.length > 0 && navItems.length > 0 && (
-              <CommandSeparator />
-            )}
+                {!searching && searchResults.length > 0 && filteredNav.length > 0 && (
+                  <CommandSeparator />
+                )}
 
-            {navItems.length > 0 && (
-              <CommandGroup heading="Navigation">
-                {navItems.map((item) => (
-                  <CommandItem
-                    key={item.href}
-                    value={item.label}
-                    onSelect={() => navigate(item.href)}
-                  >
-                    {item.label}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+                {filteredNav.length > 0 && (
+                  <CommandGroup heading="Navigation">
+                    {filteredNav.map((item) => (
+                      <CommandItem
+                        key={item.href}
+                        value={item.href}
+                        onSelect={() => navigate(item.href)}
+                      >
+                        {item.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+
+                {!searching && searchResults.length === 0 && filteredNav.length === 0 && (
+                  <CommandEmpty>No results found.</CommandEmpty>
+                )}
+              </>
             )}
           </CommandList>
         </Command>

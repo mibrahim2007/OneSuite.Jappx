@@ -19,6 +19,7 @@ import {
 import { ItemDialog } from "@/components/app/inventory/item-dialog";
 import { toggleItemActiveAction } from "@/server/actions/inventory/items";
 import { VALUATION_METHOD_LABELS } from "@/lib/validations/inventory";
+import { exportToCsv } from "@/lib/utils/export-csv";
 import type { ItemCategory, Uom } from "@/lib/db/schema";
 
 type AccountOption = { id: string; code: string; name: string; type: string };
@@ -99,11 +100,33 @@ export function ItemsTable({ items, categories, uoms, accounts, canCreate, canEd
         <p className="text-sm text-muted-foreground">
           Products and services in your catalogue.
         </p>
-        {canCreate && (
-          <Button size="sm" onClick={openNew}>
-            New Item
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToCsv("items", items as unknown as Record<string, unknown>[], [
+                  { key: "sku", label: "SKU" },
+                  { key: "name", label: "Name" },
+                  { key: "categoryName", label: "Category" },
+                  { key: "uomCode", label: "UoM" },
+                  { key: "purchasePrice", label: "Purchase Price" },
+                  { key: "salePrice", label: "Sale Price" },
+                  { key: "reorderLevel", label: "Reorder Level" },
+                  { key: "isActive", label: "Active" },
+                ])
+              }
+            >
+              Export CSV
+            </Button>
+          )}
+          {canCreate && (
+            <Button size="sm" onClick={openNew}>
+              New Item
+            </Button>
+          )}
+        </div>
       </div>
 
       <ItemDialog

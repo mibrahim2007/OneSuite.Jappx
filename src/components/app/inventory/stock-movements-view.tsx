@@ -27,6 +27,7 @@ import {
 import { SELECT_CLASS } from "@/lib/ui-constants";
 import { createStockMoveAction } from "@/server/actions/inventory/stock-moves";
 import { MOVE_TYPES, MOVE_TYPE_LABELS, type MoveType } from "@/lib/validations/inventory";
+import { exportToCsv } from "@/lib/utils/export-csv";
 
 type MoveRow = {
   id: string;
@@ -243,12 +244,35 @@ export function StockMovementsView({
             Record receipts, issues, transfers, and adjustments.
           </p>
         </div>
-        {canCreate && (
-          <Button size="sm" onClick={openDialog}>
-            <Plus className="h-4 w-4 mr-1" />
-            New Movement
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {moves.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToCsv("stock-movements", moves as unknown as Record<string, unknown>[], [
+                  { key: "moveDate", label: "Date" },
+                  { key: "moveType", label: "Type" },
+                  { key: "itemSku", label: "SKU" },
+                  { key: "itemName", label: "Item" },
+                  { key: "fromWarehouseName", label: "From Warehouse" },
+                  { key: "toWarehouseName", label: "To Warehouse" },
+                  { key: "quantity", label: "Quantity" },
+                  { key: "unitCost", label: "Unit Cost" },
+                  { key: "reference", label: "Reference" },
+                ])
+              }
+            >
+              Export CSV
+            </Button>
+          )}
+          {canCreate && (
+            <Button size="sm" onClick={openDialog}>
+              <Plus className="h-4 w-4 mr-1" />
+              New Movement
+            </Button>
+          )}
+        </div>
       </div>
 
       {canCreate && (

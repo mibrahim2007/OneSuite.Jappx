@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { SELECT_CLASS } from "@/lib/ui-constants";
 import { createLeadAction, updateLeadAction, updateLeadStatusAction, deleteLeadAction } from "@/server/actions/crm/leads";
 import { LEAD_STATUSES, type LeadStatus } from "@/lib/validations/crm";
+import { exportToCsv } from "@/lib/utils/export-csv";
 
 type Lead = {
   id: string;
@@ -168,12 +169,34 @@ export function LeadsTable({ leads, canCreate, canEdit, canDelete }: Props) {
 
   return (
     <>
-      <div className="flex justify-end mb-4">
-        {canCreate && (
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="size-4 mr-1" /> New Lead
-          </Button>
-        )}
+      <div className="flex items-center justify-between mb-4">
+        <div />
+        <div className="flex items-center gap-2">
+          {leads.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportToCsv("leads", leads as unknown as Record<string, unknown>[], [
+                  { key: "name", label: "Name" },
+                  { key: "company", label: "Company" },
+                  { key: "email", label: "Email" },
+                  { key: "phone", label: "Phone" },
+                  { key: "source", label: "Source" },
+                  { key: "score", label: "Score" },
+                  { key: "status", label: "Status" },
+                ])
+              }
+            >
+              Export CSV
+            </Button>
+          )}
+          {canCreate && (
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="size-4 mr-1" /> New Lead
+            </Button>
+          )}
+        </div>
       </div>
 
       {leads.length === 0 ? (

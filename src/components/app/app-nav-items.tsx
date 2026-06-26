@@ -24,6 +24,7 @@ import {
   GitMerge,
   CalendarCheck,
   FileText,
+  Activity,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -193,6 +194,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Maintenance",
     icon: Wrench,
     requiredPerms: ["rm:asset:view", "rm:workorder:view"],
+  },
+  {
+    module: null,
+    href: "/app/activity",
+    label: "Activity",
+    icon: Activity,
+    requiredPerms: [],
   },
 ];
 

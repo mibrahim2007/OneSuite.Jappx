@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { updatePoStatusAction } from "@/server/actions/procurement/purchase-orders";
 import { PurchaseOrderDialog } from "./purchase-order-dialog";
+import { exportToCsv } from "@/lib/utils/export-csv";
 
 type PO = {
   id: string;
@@ -95,14 +96,35 @@ export function PurchaseOrdersTable({
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold">Purchase Orders</h1>
-        {canCreate && (
-          <button
-            onClick={() => { setDialogKey((k) => k + 1); setOpen(true); }}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            New PO
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {pos.length > 0 && (
+            <button
+              onClick={() =>
+                exportToCsv("purchase-orders", pos as unknown as Record<string, unknown>[], [
+                  { key: "poNo", label: "PO No" },
+                  { key: "vendorName", label: "Vendor" },
+                  { key: "orderDate", label: "Order Date" },
+                  { key: "expectedDate", label: "Expected Date" },
+                  { key: "status", label: "Status" },
+                  { key: "subtotal", label: "Subtotal" },
+                  { key: "taxTotal", label: "Tax" },
+                  { key: "total", label: "Total" },
+                ])
+              }
+              className="rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+            >
+              Export CSV
+            </button>
+          )}
+          {canCreate && (
+            <button
+              onClick={() => { setDialogKey((k) => k + 1); setOpen(true); }}
+              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              New PO
+            </button>
+          )}
+        </div>
       </div>
 
       {pos.length === 0 ? (
