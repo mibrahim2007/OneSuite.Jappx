@@ -61,6 +61,20 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     ],
   },
   {
+    module: "accounts",
+    href: "/app/accounts/payments",
+    label: "Payments",
+    icon: ArrowLeftRight,
+    requiredPerms: ["accounts:payment:view"],
+  },
+  {
+    module: "accounts",
+    href: "/app/accounts/reports",
+    label: "Reports",
+    icon: ScrollText,
+    requiredPerms: ["accounts:report:view"],
+  },
+  {
     module: "scm",
     href: "/app/inventory",
     label: "Stock Overview",
