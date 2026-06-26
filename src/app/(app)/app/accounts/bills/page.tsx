@@ -43,6 +43,8 @@ export default async function BillsPage() {
       createdBy: bills.createdBy,
       createdAt: bills.createdAt,
       updatedAt: bills.updatedAt,
+      currencyCode: bills.currencyCode,
+      exchangeRate: bills.exchangeRate,
       vendorName: contacts.name,
     })
     .from(bills)

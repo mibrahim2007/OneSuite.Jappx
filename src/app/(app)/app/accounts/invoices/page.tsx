@@ -43,6 +43,8 @@ export default async function InvoicesPage() {
       createdBy: invoices.createdBy,
       createdAt: invoices.createdAt,
       updatedAt: invoices.updatedAt,
+      currencyCode: invoices.currencyCode,
+      exchangeRate: invoices.exchangeRate,
       customerName: contacts.name,
     })
     .from(invoices)
