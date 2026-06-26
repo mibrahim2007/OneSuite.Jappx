@@ -42,6 +42,8 @@ export const PERMISSION_CATALOG = [
   { code: 'accounts:tax:view',            module: 'accounts', resource: 'tax',       action: 'view',    description: 'View tax rates' },
   { code: 'accounts:tax:manage',          module: 'accounts', resource: 'tax',       action: 'manage',  description: 'Manage tax rates' },
   { code: 'accounts:report:view',         module: 'accounts', resource: 'report',    action: 'view',    description: 'View financial reports' },
+  { code: 'accounts:budget:create',       module: 'accounts', resource: 'budget',    action: 'create',  description: 'Create budgets' },
+  { code: 'accounts:budget:update',       module: 'accounts', resource: 'budget',    action: 'update',  description: 'Edit budget lines and status' },
   { code: 'accounts:contact:view',        module: 'accounts', resource: 'contact',   action: 'view',    description: 'View contacts (vendors & customers)' },
   { code: 'accounts:contact:manage',      module: 'accounts', resource: 'contact',   action: 'manage',  description: 'Create and edit contacts' },
   // scm
@@ -91,6 +93,12 @@ export const PERMISSION_CATALOG = [
   { code: 'hrm:payroll:view',            module: 'hrm', resource: 'payroll',    action: 'view',    description: 'View payroll runs' },
   { code: 'hrm:payroll:run',             module: 'hrm', resource: 'payroll',    action: 'run',     description: 'Execute payroll' },
   { code: 'hrm:payslip:view',            module: 'hrm', resource: 'payslip',    action: 'view',    description: 'View own payslips' },
+  { code: 'hrm:recruit:view',            module: 'hrm', resource: 'recruit',    action: 'view',    description: 'View job postings and applications' },
+  { code: 'hrm:recruit:create',          module: 'hrm', resource: 'recruit',    action: 'create',  description: 'Create job postings' },
+  { code: 'hrm:recruit:update',          module: 'hrm', resource: 'recruit',    action: 'update',  description: 'Update applications and interviews' },
+  { code: 'hrm:appraisal:view',          module: 'hrm', resource: 'appraisal', action: 'view',    description: 'View all appraisals' },
+  { code: 'hrm:appraisal:self',          module: 'hrm', resource: 'appraisal', action: 'self',    description: 'Fill own self-review' },
+  { code: 'hrm:appraisal:manage',        module: 'hrm', resource: 'appraisal', action: 'manage',  description: 'Manage appraisal cycles and reviews' },
   // fleet
   { code: 'fleet:vehicle:view',          module: 'fleet', resource: 'vehicle',    action: 'view',    description: 'View vehicles' },
   { code: 'fleet:vehicle:create',        module: 'fleet', resource: 'vehicle',    action: 'create',  description: 'Add vehicles' },

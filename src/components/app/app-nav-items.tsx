@@ -32,6 +32,12 @@ import {
   BarChart3,
   MapPin,
   TrendingUp,
+  Globe,
+  Landmark,
+  DollarSign,
+  Briefcase,
+  Video,
+  Star,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -86,6 +92,41 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Cost Dashboard",
     icon: TrendingUp,
     requiredPerms: ["accounts:report:view"],
+  },
+  {
+    module: "accounts",
+    href: "/app/accounts/budgets",
+    label: "Budgets",
+    icon: BarChart3,
+    requiredPerms: ["accounts:report:view"],
+  },
+  {
+    module: "accounts",
+    href: "/app/accounts/budget-vs-actual",
+    label: "Budget vs Actual",
+    icon: TrendingUp,
+    requiredPerms: ["accounts:report:view"],
+  },
+  {
+    module: "accounts",
+    href: "/app/accounts/department-budgets",
+    label: "Dept. Budgets",
+    icon: BarChart3,
+    requiredPerms: ["accounts:report:view"],
+  },
+  {
+    module: "accounts",
+    href: "/app/accounts/bank-reconciliation",
+    label: "Bank Reconciliation",
+    icon: Landmark,
+    requiredPerms: ["accounts:journal:view"],
+  },
+  {
+    module: "accounts",
+    href: "/app/accounts/forex-gains-losses",
+    label: "Forex Gains/Losses",
+    icon: DollarSign,
+    requiredPerms: ["accounts:reports:view"],
   },
   {
     module: "scm",
@@ -243,6 +284,27 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     requiredPerms: ["hrm:payslip:view"],
   },
   {
+    module: "hrm",
+    href: "/app/hrm/recruitment/jobs",
+    label: "Jobs",
+    icon: Briefcase,
+    requiredPerms: ["hrm:recruit:view"],
+  },
+  {
+    module: "hrm",
+    href: "/app/hrm/recruitment/interviews",
+    label: "Interviews",
+    icon: Video,
+    requiredPerms: ["hrm:recruit:view"],
+  },
+  {
+    module: "hrm",
+    href: "/app/hrm/appraisals",
+    label: "Appraisals",
+    icon: Star,
+    requiredPerms: ["hrm:appraisal:view", "hrm:appraisal:self"],
+  },
+  {
     module: "fleet",
     href: "/app/fleet/vehicles",
     label: "Vehicles",
@@ -292,6 +354,20 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     requiredPerms: ["accounts:journal:create"],
   },
   {
+    module: "fleet",
+    href: "/app/fleet/tracking",
+    label: "Live Tracking",
+    icon: MapPin,
+    requiredPerms: ["fleet:tracking:view"],
+  },
+  {
+    module: "fleet",
+    href: "/app/fleet/geofences",
+    label: "Geofences",
+    icon: AlertTriangle,
+    requiredPerms: ["fleet:tracking:view"],
+  },
+  {
     module: "rm",
     href: "/app/rm/assets",
     label: "Assets",
@@ -311,6 +387,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "PM Schedules",
     icon: CalendarCheck,
     requiredPerms: ["rm:pm:view"],
+  },
+  {
+    module: null,
+    href: "/app/settings/currencies",
+    label: "Currencies",
+    icon: Globe,
+    requiredPerms: ["admin:settings:view"],
   },
   {
     module: null,

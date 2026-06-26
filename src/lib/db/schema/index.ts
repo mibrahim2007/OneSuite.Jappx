@@ -18,3 +18,6 @@ export * from "./hrm";          // Epic 13 HRM
 export * from "./fleet";       // Epic 12
 export * from "./maintenance"; // P2-E1 R&M
 export * from "./payroll";    // P2-E5 Payroll
+export * from "./budgets";   // P3-E2 Budgeting
+export * from "./multicurrency"; // P3-E1 Multi-currency & bank reconciliation
+export * from "./gps";          // P3-E5 GPS/Telematics
