@@ -30,6 +30,8 @@ import {
   Fuel,
   AlertTriangle,
   BarChart3,
+  MapPin,
+  TrendingUp,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -76,6 +78,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     href: "/app/accounts/reports",
     label: "Reports",
     icon: ScrollText,
+    requiredPerms: ["accounts:report:view"],
+  },
+  {
+    module: "accounts",
+    href: "/app/accounts/cost-dashboard",
+    label: "Cost Dashboard",
+    icon: TrendingUp,
     requiredPerms: ["accounts:report:view"],
   },
   {
@@ -276,6 +285,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     requiredPerms: ["fleet:vehicle:view"],
   },
   {
+    module: "fleet",
+    href: "/app/fleet/gl-posting",
+    label: "GL Posting",
+    icon: BookOpen,
+    requiredPerms: ["accounts:journal:create"],
+  },
+  {
     module: "rm",
     href: "/app/rm/assets",
     label: "Assets",
@@ -295,6 +311,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "PM Schedules",
     icon: CalendarCheck,
     requiredPerms: ["rm:pm:view"],
+  },
+  {
+    module: null,
+    href: "/app/settings/gl-mappings",
+    label: "GL Mappings",
+    icon: MapPin,
+    requiredPerms: ["admin:settings:view"],
   },
   {
     module: null,
