@@ -21,3 +21,4 @@ export * from "./payroll";    // P2-E5 Payroll
 export * from "./budgets";   // P3-E2 Budgeting
 export * from "./multicurrency"; // P3-E1 Multi-currency & bank reconciliation
 export * from "./gps";          // P3-E5 GPS/Telematics
+export * from "./campaigns";    // P3-E7 Campaigns & Segmentation

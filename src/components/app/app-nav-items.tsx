@@ -60,6 +60,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     requiredPerms: [],
   },
   {
+    module: null,
+    href: "/app/analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    requiredPerms: ["accounts:report:view"],
+  },
+  {
     module: "accounts",
     href: "/app/accounts",
     label: "Accounts",
@@ -233,6 +240,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Quotations",
     icon: FileText,
     requiredPerms: ["crm:quotation:view"],
+  },
+  {
+    module: "crm",
+    href: "/app/crm/campaigns",
+    label: "Campaigns",
+    icon: Activity,
+    requiredPerms: ["crm:lead:view"],
   },
   {
     module: "hrm",
