@@ -18,6 +18,12 @@ import {
   ClipboardList,
   ShoppingCart,
   PackageCheck,
+  Building2,
+  Contact,
+  Flame,
+  GitMerge,
+  CalendarCheck,
+  FileText,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -118,14 +124,45 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   },
   {
     module: "crm",
-    href: "/app/crm",
-    label: "CRM",
-    icon: Users,
-    requiredPerms: [
-      "crm:lead:view",
-      "crm:contact:view",
-      "crm:opportunity:view",
-    ],
+    href: "/app/crm/companies",
+    label: "Companies",
+    icon: Building2,
+    requiredPerms: ["crm:contact:view"],
+  },
+  {
+    module: "crm",
+    href: "/app/crm/contacts",
+    label: "Contacts",
+    icon: Contact,
+    requiredPerms: ["crm:contact:view"],
+  },
+  {
+    module: "crm",
+    href: "/app/crm/leads",
+    label: "Leads",
+    icon: Flame,
+    requiredPerms: ["crm:lead:view"],
+  },
+  {
+    module: "crm",
+    href: "/app/crm/pipeline",
+    label: "Pipeline",
+    icon: GitMerge,
+    requiredPerms: ["crm:opportunity:view"],
+  },
+  {
+    module: "crm",
+    href: "/app/crm/activities",
+    label: "Activities",
+    icon: CalendarCheck,
+    requiredPerms: ["crm:activity:view"],
+  },
+  {
+    module: "crm",
+    href: "/app/crm/quotations",
+    label: "Quotations",
+    icon: FileText,
+    requiredPerms: ["crm:quotation:view"],
   },
   {
     module: "hrm",
