@@ -29,6 +29,7 @@ import {
   Route as RouteIcon,
   Fuel,
   AlertTriangle,
+  BarChart3,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -185,15 +186,31 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   },
   {
     module: "hrm",
-    href: "/app/hrm",
-    label: "HR",
+    href: "/app/hrm/employees",
+    label: "Employees",
     icon: UserRound,
-    requiredPerms: [
-      "hrm:employee:view",
-      "hrm:attendance:view",
-      "hrm:payroll:view",
-      "hrm:payslip:view",
-    ],
+    requiredPerms: ["hrm:employee:view"],
+  },
+  {
+    module: "hrm",
+    href: "/app/hrm/departments",
+    label: "Departments",
+    icon: Building2,
+    requiredPerms: ["hrm:employee:view"],
+  },
+  {
+    module: "hrm",
+    href: "/app/hrm/attendance",
+    label: "Attendance",
+    icon: CalendarCheck,
+    requiredPerms: ["hrm:attendance:view"],
+  },
+  {
+    module: "hrm",
+    href: "/app/hrm/leave",
+    label: "Leave",
+    icon: Users,
+    requiredPerms: ["hrm:leave:view"],
   },
   {
     module: "fleet",
@@ -229,6 +246,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: "Alerts",
     icon: AlertTriangle,
     requiredPerms: ["fleet:compliance:view"],
+  },
+  {
+    module: "fleet",
+    href: "/app/fleet/maintenance",
+    label: "Fleet Maintenance",
+    icon: BarChart3,
+    requiredPerms: ["fleet:vehicle:view"],
   },
   {
     module: "rm",
