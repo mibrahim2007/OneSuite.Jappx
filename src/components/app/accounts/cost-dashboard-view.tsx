@@ -18,7 +18,7 @@ type TrendRow = {
 
 const SOURCE_LABELS: Record<string, string> = {
   fleet: "Fleet",
-  rm: "Maintenance",
+  maintenance: "Maintenance",
   payroll: "Payroll",
 };
 
@@ -58,7 +58,7 @@ export function CostDashboardView({
 
   // 6-month trend by month
   const allMonths = [...new Set(trendRows.map((r) => r.month))].sort();
-  const allSources = ["fleet", "rm", "payroll"];
+  const allSources = ["fleet", "maintenance", "payroll"];
 
   return (
     <div className="space-y-8">

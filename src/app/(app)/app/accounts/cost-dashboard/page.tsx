@@ -54,7 +54,7 @@ export default async function CostDashboardPage({
         eq(journals.isPosted, true),
         gte(journals.entryDate, fromDate),
         lte(journals.entryDate, toDate),
-        sql`${journals.source} IN ('fleet', 'rm', 'payroll')`
+        sql`${journals.source} IN ('fleet', 'maintenance', 'payroll')`
       )
     )
     .groupBy(journals.source, accounts.code, accounts.name)
@@ -78,7 +78,7 @@ export default async function CostDashboardPage({
         eq(journals.tenantId, tid),
         eq(journals.isPosted, true),
         gte(journals.entryDate, trendFrom),
-        sql`${journals.source} IN ('fleet', 'rm', 'payroll')`
+        sql`${journals.source} IN ('fleet', 'maintenance', 'payroll')`
       )
     )
     .groupBy(sql`TO_CHAR(${journals.entryDate}::date, 'YYYY-MM')`, journals.source)
