@@ -6,6 +6,11 @@ import {
   LayoutDashboard,
   BookOpen,
   Package,
+  Tag,
+  Warehouse,
+  ArrowLeftRight,
+  ScrollText,
+  Settings2,
   Users,
   UserRound,
   Truck,
@@ -20,6 +25,7 @@ export type AppNavItem = {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   requiredPerms: string[];
+  exactMatch?: boolean;
 };
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
@@ -45,14 +51,46 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   },
   {
     module: "scm",
-    href: "/app/scm",
-    label: "Supply Chain",
+    href: "/app/inventory",
+    label: "Stock Overview",
     icon: Package,
-    requiredPerms: [
-      "scm:item:view",
-      "scm:po:view",
-      "scm:inventory:view",
-    ],
+    requiredPerms: ["scm:inventory:view"],
+    exactMatch: true,
+  },
+  {
+    module: "scm",
+    href: "/app/inventory/items",
+    label: "Items",
+    icon: Tag,
+    requiredPerms: ["scm:item:view"],
+  },
+  {
+    module: "scm",
+    href: "/app/inventory/warehouses",
+    label: "Warehouses",
+    icon: Warehouse,
+    requiredPerms: ["scm:inventory:view"],
+  },
+  {
+    module: "scm",
+    href: "/app/inventory/stock-movements",
+    label: "Movements",
+    icon: ArrowLeftRight,
+    requiredPerms: ["scm:inventory:view"],
+  },
+  {
+    module: "scm",
+    href: "/app/inventory/ledger",
+    label: "Stock Ledger",
+    icon: ScrollText,
+    requiredPerms: ["scm:inventory:view"],
+  },
+  {
+    module: "scm",
+    href: "/app/inventory/settings",
+    label: "Inv. Settings",
+    icon: Settings2,
+    requiredPerms: ["scm:item:view"],
   },
   {
     module: "crm",
@@ -131,7 +169,7 @@ export function AppNavItems({
     <nav className="flex flex-col gap-1 p-2">
       {visible.map((item) => {
         const active =
-          item.href === "/app/dashboard"
+          item.href === "/app/dashboard" || item.exactMatch
             ? pathname === item.href
             : pathname.startsWith(item.href);
 

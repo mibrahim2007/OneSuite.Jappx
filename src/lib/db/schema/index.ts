@@ -8,7 +8,8 @@ export * from "./journals";
 export * from "./contacts";
 export * from "./bills";
 export * from "./invoices";
-// export * from "./scm";        // Epic 7-8
+export * from "./inventory";   // Epic 7-8
+// export * from "./scm";        // Epic 7-8 (legacy placeholder)
 // export * from "./crm";        // Epic 9
 // export * from "./hrm";        // Epic 13-14
 // export * from "./fleet";      // Epic 12
