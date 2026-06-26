@@ -674,5 +674,4 @@ export async function logoutAction(): Promise<void> {
   }
 
   await clearAuthCookies();
-  redirect("/login");
 }

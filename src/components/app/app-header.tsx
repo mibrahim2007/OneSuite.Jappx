@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect, startTransition } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Route } from "next";
 import { Settings, LogOut, Menu, Shield } from "lucide-react";
 
-import { logoutAction } from "@/server/actions/auth";
 import { OrgSwitcher } from "@/components/app/org-switcher";
 import type { OrgMembership } from "@/components/app/org-switcher";
 import { AppNavItems, APP_NAV_ITEMS, isItemVisible } from "@/components/app/app-nav-items";
@@ -181,9 +180,7 @@ export function AppHeader({
 
               <DropdownMenuItem
                 onSelect={() => {
-                  startTransition(() => {
-                    logoutAction();
-                  });
+                  router.push("/api/auth/logout" as Route);
                 }}
               >
                 <LogOut className="mr-2 size-4" aria-hidden="true" />

@@ -1,11 +1,9 @@
 "use client";
 
-import { startTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import { Settings, LogOut, Shield } from "lucide-react";
 
-import { logoutAction } from "@/server/actions/auth";
 import { OrgSwitcher } from "@/components/app/org-switcher";
 import type { OrgMembership } from "@/components/app/org-switcher";
 import { CommandPalette } from "@/components/app/command-palette";
@@ -147,9 +145,7 @@ export function AdminHeader({
 
             <DropdownMenuItem
               onSelect={() => {
-                startTransition(() => {
-                  logoutAction();
-                });
+                router.push("/api/auth/logout" as Route);
               }}
             >
               <LogOut className="mr-2 size-4" aria-hidden="true" />
