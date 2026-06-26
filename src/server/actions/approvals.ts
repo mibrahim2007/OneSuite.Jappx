@@ -12,20 +12,9 @@ import {
   purchaseOrders,
 } from "@/lib/db/schema";
 import { createAuditLog } from "@/lib/audit";
+import { ENTITY_APPROVE_PERM, ENTITY_REVALIDATE } from "@/lib/approvals-config";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-// Map entity type → permission required to approve it
-export const ENTITY_APPROVE_PERM: Record<string, string> = {
-  requisition: "scm:requisition:approve",
-  purchase_order: "scm:po:approve",
-};
-
-// Revalidate paths affected by approval decisions
-const ENTITY_REVALIDATE: Record<string, string[]> = {
-  requisition: ["/app/procurement/requisitions", "/app/approvals"],
-  purchase_order: ["/app/procurement/purchase-orders", "/app/approvals"],
-};
 
 export async function decideApprovalStepAction(
   stepId: string,

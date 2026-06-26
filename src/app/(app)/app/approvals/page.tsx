@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { verifyAccessToken } from "@/lib/auth/jwt";
 import { db } from "@/lib/db";
 import { approvalRequests, approvalSteps } from "@/lib/db/schema";
-import { ENTITY_APPROVE_PERM } from "@/server/actions/approvals";
+import { ENTITY_APPROVE_PERM } from "@/lib/approvals-config";
 import { ApprovalsInbox } from "@/components/app/approvals/approvals-inbox";
 
 export default async function ApprovalsPage() {
