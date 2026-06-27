@@ -163,6 +163,28 @@ export const quotationLines = pgTable("quotation_lines", {
   lineTotal: numeric("line_total", { precision: 15, scale: 4 }).notNull().default("0"),
 });
 
+// --- Tickets ---
+export const ticketPriorityEnum = pgEnum("ticket_priority", ["low", "medium", "high", "urgent"]);
+export const ticketStatusEnum = pgEnum("ticket_status", ["open", "pending", "resolved", "closed"]);
+
+export const tickets = pgTable("tickets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  ticketNo: text("ticket_no").notNull(),
+  subject: text("subject").notNull(),
+  description: text("description"),
+  companyId: uuid("company_id"),
+  contactId: uuid("contact_id"),
+  priority: ticketPriorityEnum("priority").notNull().default("medium"),
+  status: ticketStatusEnum("status").notNull().default("open"),
+  assignedTo: uuid("assigned_to"),
+  dueAt: timestamp("due_at", { withTimezone: true }),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Type exports
 export type CrmCompany = typeof crmCompanies.$inferSelect;
 export type CrmContact = typeof crmContacts.$inferSelect;
@@ -172,3 +194,5 @@ export type Opportunity = typeof opportunities.$inferSelect;
 export type Activity = typeof activities.$inferSelect;
 export type Quotation = typeof quotations.$inferSelect;
 export type QuotationLine = typeof quotationLines.$inferSelect;
+export type Ticket = typeof tickets.$inferSelect;
+export type NewTicket = typeof tickets.$inferInsert;

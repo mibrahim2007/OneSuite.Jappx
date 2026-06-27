@@ -38,6 +38,7 @@ import {
   Briefcase,
   Video,
   Star,
+  Ticket as TicketIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -246,6 +247,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     href: "/app/crm/campaigns",
     label: "Campaigns",
     icon: Activity,
+    requiredPerms: ["crm:lead:view"],
+  },
+  {
+    module: "crm",
+    href: "/app/crm/tickets",
+    label: "Support Tickets",
+    icon: TicketIcon,
     requiredPerms: ["crm:lead:view"],
   },
   {
