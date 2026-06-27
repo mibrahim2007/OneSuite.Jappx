@@ -17,6 +17,7 @@ import type { OrgMembership } from "@/components/app/org-switcher";
 import { PermissionsProvider } from "@/components/providers/permissions-provider";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { AppHeader } from "@/components/app/app-header";
+import { AppBreadcrumb } from "@/components/app/app-breadcrumb";
 
 export default async function AppLayout({
   children,
@@ -137,6 +138,7 @@ export default async function AppLayout({
             userId={user.sub}
           />
           <main className="flex-1 overflow-auto bg-background">
+            <AppBreadcrumb />
             {children}
           </main>
         </div>
