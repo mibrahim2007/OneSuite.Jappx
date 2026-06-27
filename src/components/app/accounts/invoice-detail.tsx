@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Invoice, InvoiceLine } from "@/lib/db/schema";
@@ -35,12 +36,21 @@ export function InvoiceDetail({ invoice, lines }: InvoiceDetailProps) {
             Customer invoice — read only
           </p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => router.push("/app/accounts/invoices")}
-        >
-          Back to Invoices
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => window.open(`/print/invoices/${invoice.id}`, "_blank")}
+          >
+            <Printer className="size-4 mr-1.5" />
+            Print / PDF
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => router.push("/app/accounts/invoices")}
+          >
+            Back to Invoices
+          </Button>
+        </div>
       </div>
 
       {/* Header grid */}
