@@ -63,6 +63,18 @@ export function ContactsView({ contacts, canManage }: ContactsViewProps) {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [activeFilter, setActiveFilter] = useState("all");
+
+  const filtered = contacts.filter((c) => {
+    const q = search.toLowerCase();
+    return (
+      (!q || c.name.toLowerCase().includes(q) || (c.code ?? "").toLowerCase().includes(q) || (c.email ?? "").toLowerCase().includes(q) || (c.phone ?? "").toLowerCase().includes(q)) &&
+      (typeFilter === "all" || c.type === typeFilter) &&
+      (activeFilter === "all" || (activeFilter === "active" ? c.isActive : !c.isActive))
+    );
+  });
   const [pendingIds, setPendingIds] = useState<Set<string>>(() => new Set());
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [, startToggleTransition] = useTransition();
@@ -287,6 +299,46 @@ export function ContactsView({ contacts, canManage }: ContactsViewProps) {
         </DialogContent>
       </Dialog>
 
+      {contacts.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="search"
+            placeholder="Search name, code, email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex h-8 w-56 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          />
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="flex h-8 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 w-32"
+          >
+            <option value="all">All types</option>
+            <option value="customer">Customer</option>
+            <option value="vendor">Vendor</option>
+            <option value="both">Both</option>
+          </select>
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value)}
+            className="flex h-8 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 w-28"
+          >
+            <option value="all">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          {(search || typeFilter !== "all" || activeFilter !== "all") && (
+            <button
+              onClick={() => { setSearch(""); setTypeFilter("all"); setActiveFilter("all"); }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Clear
+            </button>
+          )}
+          <span className="ml-auto text-xs text-muted-foreground">{filtered.length} of {contacts.length}</span>
+        </div>
+      )}
+
       {contacts.length === 0 ? (
         <EmptyState
           icon={Users}
@@ -300,6 +352,8 @@ export function ContactsView({ contacts, canManage }: ContactsViewProps) {
             ) : undefined
           }
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={Users} title="No matching contacts" description="Try adjusting your search or filters." />
       ) : (
         <Table>
           <TableHeader>
@@ -315,7 +369,7 @@ export function ContactsView({ contacts, canManage }: ContactsViewProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {contacts.map((contact) => (
+            {filtered.map((contact) => (
               <TableRow key={contact.id}>
                 <TableCell className="text-muted-foreground text-sm font-mono">
                   {contact.code ?? "—"}

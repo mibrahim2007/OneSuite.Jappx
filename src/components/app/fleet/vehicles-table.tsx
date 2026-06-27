@@ -140,6 +140,16 @@ export function VehiclesTable({ vehicles, canCreate, canEdit }: Props) {
   const [dialogKey, setDialogKey] = useState(0);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [, startTransition] = useTransition();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const filtered = vehicles.filter((v) => {
+    const q = search.toLowerCase();
+    return (
+      (!q || v.regNumber.toLowerCase().includes(q) || (v.make ?? "").toLowerCase().includes(q) || (v.model ?? "").toLowerCase().includes(q)) &&
+      (statusFilter === "all" || v.status === statusFilter)
+    );
+  });
 
   function openCreate() {
     setEditing(null);
@@ -165,7 +175,39 @@ export function VehiclesTable({ vehicles, canCreate, canEdit }: Props) {
 
   return (
     <>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {vehicles.length > 0 && (
+            <>
+              <input
+                type="search"
+                placeholder="Search reg, make, model…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex h-8 w-48 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="flex h-8 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 w-32"
+              >
+                <option value="all">All statuses</option>
+                {VEHICLE_STATUSES.map((s) => (
+                  <option key={s} value={s}>{VEHICLE_STATUS_LABELS[s]}</option>
+                ))}
+              </select>
+              {(search || statusFilter !== "all") && (
+                <button
+                  onClick={() => { setSearch(""); setStatusFilter("all"); }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+              <span className="text-xs text-muted-foreground">{filtered.length} of {vehicles.length}</span>
+            </>
+          )}
+        </div>
         {canCreate && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="size-4 mr-1" /> New Vehicle
@@ -175,6 +217,8 @@ export function VehiclesTable({ vehicles, canCreate, canEdit }: Props) {
 
       {vehicles.length === 0 ? (
         <EmptyState icon={Truck} title="No vehicles" description="Register your first vehicle." />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={Truck} title="No matching vehicles" description="Try adjusting your search or status filter." />
       ) : (
         <Table>
           <TableHeader>
@@ -189,7 +233,7 @@ export function VehiclesTable({ vehicles, canCreate, canEdit }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vehicles.map((v) => (
+            {filtered.map((v) => (
               <TableRow key={v.id}>
                 <TableCell className="font-mono font-medium">{v.regNumber}</TableCell>
                 <TableCell>

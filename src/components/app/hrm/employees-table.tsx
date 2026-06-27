@@ -61,6 +61,18 @@ export function EmployeesTable({ employees, departments, designations, canCreate
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogKey, setDialogKey] = useState(0);
   const [editing, setEditing] = useState<EmployeeRow | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState("all");
+
+  const filtered = employees.filter((e) => {
+    const q = search.toLowerCase();
+    return (
+      (!q || e.empCode.toLowerCase().includes(q) || e.fullName.toLowerCase().includes(q) || (e.email ?? "").toLowerCase().includes(q)) &&
+      (statusFilter === "all" || e.status === statusFilter) &&
+      (deptFilter === "all" || e.departmentId === deptFilter)
+    );
+  });
 
   function openCreate() {
     setEditing(null);
@@ -83,12 +95,59 @@ export function EmployeesTable({ employees, departments, designations, canCreate
         )}
       </div>
 
+      {employees.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="search"
+            placeholder="Search name, code, email…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex h-8 w-56 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="flex h-8 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 w-36"
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="probation">Probation</option>
+            <option value="on_leave">On Leave</option>
+            <option value="resigned">Resigned</option>
+            <option value="terminated">Terminated</option>
+          </select>
+          {departments.length > 0 && (
+            <select
+              value={deptFilter}
+              onChange={(e) => setDeptFilter(e.target.value)}
+              className="flex h-8 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 w-40"
+            >
+              <option value="all">All departments</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          )}
+          {(search || statusFilter !== "all" || deptFilter !== "all") && (
+            <button
+              onClick={() => { setSearch(""); setStatusFilter("all"); setDeptFilter("all"); }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Clear
+            </button>
+          )}
+          <span className="ml-auto text-xs text-muted-foreground">{filtered.length} of {employees.length}</span>
+        </div>
+      )}
+
       {employees.length === 0 ? (
         <EmptyState
           icon={UserRound}
           title="No employees"
           description="Add your first employee to get started."
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={UserRound} title="No matching employees" description="Try adjusting your search or filters." />
       ) : (
         <Table>
           <TableHeader>
@@ -103,7 +162,7 @@ export function EmployeesTable({ employees, departments, designations, canCreate
             </TableRow>
           </TableHeader>
           <TableBody>
-            {employees.map((emp) => (
+            {filtered.map((emp) => (
               <TableRow key={emp.id}>
                 <TableCell className="font-mono text-xs">{emp.empCode}</TableCell>
                 <TableCell>
