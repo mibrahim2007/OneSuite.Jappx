@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 
+import { ClipboardList } from "lucide-react";
 import { updateRequisitionStatusAction } from "@/server/actions/procurement/requisitions";
 import { RequisitionDialog } from "./requisition-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type Requisition = {
   id: string;
@@ -74,7 +76,11 @@ export function RequisitionsTable({ requisitions, activeItems, canCreate, canApp
       </div>
 
       {requisitions.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No requisitions yet.</p>
+        <EmptyState
+          icon={ClipboardList}
+          title="No requisitions yet"
+          description="Submit a material requisition to kick off the procurement workflow."
+        />
       ) : (
         <div className="overflow-x-auto rounded-md border">
           <table className="w-full text-sm">

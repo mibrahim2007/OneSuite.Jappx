@@ -5,7 +5,9 @@ import Link from "next/link";
 import type { Route } from "next";
 import { toast } from "sonner";
 
+import { Wrench } from "lucide-react";
 import { createWorkOrderAction } from "@/server/actions/maintenance/work-orders";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SELECT_CLASS } from "@/lib/ui-constants";
 import type { WorkOrder } from "@/lib/db/schema";
 
@@ -215,8 +217,8 @@ export function WorkOrdersTable({
           <tbody className="divide-y">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">
-                  No work orders found.
+                <td colSpan={8} className="p-0">
+                  <EmptyState icon={Wrench} title="No work orders found" description="Try adjusting your filters, or create your first work order." />
                 </td>
               </tr>
             ) : (

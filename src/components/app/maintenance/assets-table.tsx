@@ -3,9 +3,11 @@
 import { useState, useActionState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 
+import { Layers } from "lucide-react";
 import { createAssetAction, updateAssetAction } from "@/server/actions/maintenance/assets";
 import { SELECT_CLASS } from "@/lib/ui-constants";
 import type { Asset } from "@/lib/db/schema";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type AssetRow = Pick<
   Asset,
@@ -236,8 +238,8 @@ export function AssetsTable({
           <tbody className="divide-y">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={canEdit ? 7 : 6} className="px-3 py-8 text-center text-muted-foreground">
-                  No assets found.
+                <td colSpan={canEdit ? 7 : 6} className="p-0">
+                  <EmptyState icon={Layers} title="No assets found" description="Try adjusting your search, or register your first asset." />
                 </td>
               </tr>
             ) : (

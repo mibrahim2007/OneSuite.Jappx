@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash2, CheckCircle, Eye } from "lucide-react";
+import { Pencil, Trash2, CheckCircle, Eye, ReceiptText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { deleteInvoiceAction, postInvoiceAction } from "@/server/actions/invoices";
 import type { Invoice } from "@/lib/db/schema";
 
@@ -103,19 +104,18 @@ export function InvoicesList({ invoices, canCreate, canDelete, canApprove }: Inv
       </div>
 
       {invoices.length === 0 ? (
-        <div className="rounded-md border border-dashed py-16 text-center">
-          <p className="text-muted-foreground text-sm">No invoices yet.</p>
-          {canCreate && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => router.push("/app/accounts/invoices/new")}
-            >
-              Create your first invoice
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={ReceiptText}
+          title="No invoices yet"
+          description="Create your first invoice to start tracking accounts receivable."
+          action={
+            canCreate ? (
+              <Button size="sm" onClick={() => router.push("/app/accounts/invoices/new")}>
+                New Invoice
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="rounded-md border overflow-hidden">
           <table className="w-full text-sm">

@@ -5,8 +5,10 @@ import Link from "next/link";
 import type { Route } from "next";
 import { toast } from "sonner";
 
+import { Banknote } from "lucide-react";
 import { createPayrollRunAction } from "@/server/actions/hrm/payroll";
 import type { PayrollRun } from "@/lib/db/schema";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const STATUS_COLORS: Record<string, string> = {
   draft:      "bg-gray-100 text-gray-700",
@@ -94,8 +96,8 @@ export function PayrollRunsTable({ runs, canRun }: Props) {
           <tbody>
             {runs.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  No payroll runs yet.
+                <td colSpan={6} className="p-0">
+                  <EmptyState icon={Banknote} title="No payroll runs yet" description="Run your first payroll to generate employee payslips." />
                 </td>
               </tr>
             )}

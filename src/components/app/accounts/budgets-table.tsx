@@ -5,8 +5,10 @@ import Link from "next/link";
 import type { Route } from "next";
 import { toast } from "sonner";
 
+import { PieChart } from "lucide-react";
 import { type Budget } from "@/lib/db/schema";
 import { createBudgetAction, updateBudgetStatusAction } from "@/server/actions/budgets";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const STATUS_COLORS: Record<string, string> = {
   draft:  "bg-gray-100 text-gray-700",
@@ -72,7 +74,11 @@ export function BudgetsTable({
         </thead>
         <tbody className="divide-y">
           {budgets.length === 0 && (
-            <tr><td colSpan={5} className="py-8 text-center text-muted-foreground">No budgets yet.</td></tr>
+            <tr>
+              <td colSpan={5} className="p-0">
+                <EmptyState icon={PieChart} title="No budgets yet" description="Create a budget to plan and track department spending." />
+              </td>
+            </tr>
           )}
           {budgets.map((b) => (
             <tr key={b.id} className="hover:bg-muted/30">

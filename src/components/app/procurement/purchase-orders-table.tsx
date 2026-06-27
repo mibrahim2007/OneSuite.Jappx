@@ -3,8 +3,10 @@
 import { useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 
+import { ShoppingCart } from "lucide-react";
 import { updatePoStatusAction } from "@/server/actions/procurement/purchase-orders";
 import { PurchaseOrderDialog } from "./purchase-order-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { exportToCsv } from "@/lib/utils/export-csv";
 
 type PO = {
@@ -128,7 +130,11 @@ export function PurchaseOrdersTable({
       </div>
 
       {pos.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No purchase orders yet.</p>
+        <EmptyState
+          icon={ShoppingCart}
+          title="No purchase orders yet"
+          description="Raise your first PO to start tracking procurement spend."
+        />
       ) : (
         <div className="overflow-x-auto rounded-md border">
           <table className="w-full text-sm">

@@ -3,10 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash2, CheckCircle, Eye } from "lucide-react";
+import { Pencil, Trash2, CheckCircle, Eye, FileInput } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { deleteBillAction, postBillAction } from "@/server/actions/bills";
 import type { Bill } from "@/lib/db/schema";
 
@@ -106,19 +107,18 @@ export function BillsList({ bills, canCreate, canManage, canPost, canDelete }: B
       </div>
 
       {bills.length === 0 ? (
-        <div className="rounded-md border border-dashed py-16 text-center">
-          <p className="text-muted-foreground text-sm">No bills yet.</p>
-          {canCreate && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => router.push("/app/accounts/bills/new")}
-            >
-              Create your first bill
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={FileInput}
+          title="No bills yet"
+          description="Record your first vendor bill to start tracking accounts payable."
+          action={
+            canCreate ? (
+              <Button size="sm" onClick={() => router.push("/app/accounts/bills/new")}>
+                New Bill
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="rounded-md border overflow-hidden">
           <table className="w-full text-sm">
