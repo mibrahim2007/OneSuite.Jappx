@@ -64,11 +64,36 @@ export default async function InvoiceDetailPage({
     user.permissions.includes("accounts:invoice:update") ||
     user.permissions.includes("accounts:invoice:create");
 
-  // Posted/cancelled invoices → read-only detail view
+  // Non-draft invoices → read-only detail view with payment option
   if (invoice.status !== "draft") {
+    const canRecordPayment =
+      invoice.status === "posted" &&
+      user.permissions.includes("accounts:payment:create");
+
+    const [bankAccountRows, customerRows] = await Promise.all([
+      canRecordPayment
+        ? db
+            .select({ id: accounts.id, name: accounts.name, code: accounts.code })
+            .from(accounts)
+            .where(and(eq(accounts.tenantId, user.tenant_id), eq(accounts.isBank, true), eq(accounts.isActive, true)))
+            .orderBy(accounts.code)
+        : Promise.resolve([] as { id: string; name: string; code: string }[]),
+      db
+        .select({ name: contacts.name })
+        .from(contacts)
+        .where(eq(contacts.id, invoice.customerId))
+        .limit(1),
+    ]);
+
     return (
       <div className="p-6">
-        <InvoiceDetail invoice={invoice} lines={lineRows} />
+        <InvoiceDetail
+          invoice={invoice}
+          lines={lineRows}
+          bankAccounts={bankAccountRows}
+          customerName={customerRows[0]?.name ?? null}
+          canRecordPayment={canRecordPayment}
+        />
       </div>
     );
   }
@@ -77,7 +102,7 @@ export default async function InvoiceDetailPage({
   if (!canManage) {
     return (
       <div className="p-6">
-        <InvoiceDetail invoice={invoice} lines={lineRows} />
+        <InvoiceDetail invoice={invoice} lines={lineRows} bankAccounts={[]} customerName={null} canRecordPayment={false} />
       </div>
     );
   }

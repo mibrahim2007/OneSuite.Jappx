@@ -135,6 +135,7 @@ export function BillsList({ bills, canCreate, canManage, canPost, canDelete }: B
             <option value="draft">Draft</option>
             <option value="posted">Posted</option>
             <option value="overdue">Overdue</option>
+            <option value="paid">Paid</option>
             <option value="cancelled">Cancelled</option>
           </select>
           {(search || statusFilter !== "all") && (

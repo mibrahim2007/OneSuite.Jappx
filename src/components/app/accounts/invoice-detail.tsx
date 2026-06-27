@@ -1,26 +1,54 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Printer } from "lucide-react";
+import { Printer, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PaymentDialog } from "./payment-dialog";
 import type { Invoice, InvoiceLine } from "@/lib/db/schema";
+
+type BankAccount = { id: string; name: string; code: string };
 
 type InvoiceDetailProps = {
   invoice: Invoice;
   lines: InvoiceLine[];
+  bankAccounts: BankAccount[];
+  customerName: string | null;
+  canRecordPayment: boolean;
 };
 
 function statusVariant(
   status: string
 ): "secondary" | "outline" | "destructive" | "default" {
   if (status === "posted") return "outline";
+  if (status === "paid") return "default";
   if (status === "cancelled") return "destructive";
   return "secondary";
 }
 
-export function InvoiceDetail({ invoice, lines }: InvoiceDetailProps) {
+export function InvoiceDetail({ invoice, lines, bankAccounts, customerName, canRecordPayment }: InvoiceDetailProps) {
   const router = useRouter();
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentKey, setPaymentKey] = useState(0);
+
+  function openPayment() {
+    setPaymentKey((k) => k + 1);
+    setPaymentOpen(true);
+  }
+
+  function handlePaymentOpenChange(open: boolean) {
+    if (!open) router.refresh();
+    setPaymentOpen(open);
+  }
+
+  const postedInvoice = [{
+    id: invoice.id,
+    invoiceNo: invoice.invoiceNo,
+    total: invoice.total,
+    customerId: invoice.customerId,
+    customerName,
+  }];
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -37,6 +65,12 @@ export function InvoiceDetail({ invoice, lines }: InvoiceDetailProps) {
           </p>
         </div>
         <div className="flex gap-2">
+          {canRecordPayment && (
+            <Button onClick={openPayment}>
+              <CreditCard className="size-4 mr-1.5" />
+              Record Receipt
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => window.open(`/print/invoices/${invoice.id}`, "_blank")}
@@ -63,6 +97,12 @@ export function InvoiceDetail({ invoice, lines }: InvoiceDetailProps) {
           <p className="text-muted-foreground text-xs">Due Date</p>
           <p className="font-medium tabular-nums">{invoice.dueDate}</p>
         </div>
+        {customerName && (
+          <div>
+            <p className="text-muted-foreground text-xs">Customer</p>
+            <p className="font-medium">{customerName}</p>
+          </div>
+        )}
         {invoice.reference && (
           <div>
             <p className="text-muted-foreground text-xs">Reference</p>
@@ -88,21 +128,11 @@ export function InvoiceDetail({ invoice, lines }: InvoiceDetailProps) {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 border-b">
             <tr>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">
-                Account
-              </th>
-              <th className="px-4 py-2 text-left font-medium text-muted-foreground">
-                Description
-              </th>
-              <th className="px-4 py-2 text-right font-medium text-muted-foreground">
-                Amount
-              </th>
-              <th className="px-4 py-2 text-right font-medium text-muted-foreground">
-                Tax
-              </th>
-              <th className="px-4 py-2 text-right font-medium text-muted-foreground">
-                Line Total
-              </th>
+              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Account</th>
+              <th className="px-4 py-2 text-left font-medium text-muted-foreground">Description</th>
+              <th className="px-4 py-2 text-right font-medium text-muted-foreground">Amount</th>
+              <th className="px-4 py-2 text-right font-medium text-muted-foreground">Tax</th>
+              <th className="px-4 py-2 text-right font-medium text-muted-foreground">Line Total</th>
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -111,71 +141,49 @@ export function InvoiceDetail({ invoice, lines }: InvoiceDetailProps) {
               const tax = parseFloat(line.taxAmount);
               return (
                 <tr key={line.id}>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {line.accountId}
-                  </td>
-                  <td className="px-4 py-2 text-muted-foreground">
-                    {line.description ?? "—"}
-                  </td>
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    {amt.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-2 text-right tabular-nums">
-                    {tax > 0 ? tax.toFixed(2) : "—"}
-                  </td>
-                  <td className="px-4 py-2 text-right tabular-nums font-medium">
-                    {(amt + tax).toFixed(2)}
-                  </td>
+                  <td className="px-4 py-2 font-mono text-xs">{line.accountId}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{line.description ?? "—"}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{amt.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right tabular-nums">{tax > 0 ? tax.toFixed(2) : "—"}</td>
+                  <td className="px-4 py-2 text-right tabular-nums font-medium">{(amt + tax).toFixed(2)}</td>
                 </tr>
               );
             })}
           </tbody>
           <tfoot className="border-t bg-muted/20">
             <tr>
-              <td
-                colSpan={2}
-                className="px-4 py-2 text-right text-sm text-muted-foreground"
-              >
-                Subtotal
-              </td>
-              <td
-                colSpan={3}
-                className="px-4 py-2 text-right font-mono font-medium"
-              >
+              <td colSpan={2} className="px-4 py-2 text-right text-sm text-muted-foreground">Subtotal</td>
+              <td colSpan={3} className="px-4 py-2 text-right font-mono font-medium">
                 {parseFloat(invoice.subtotal).toFixed(2)}
               </td>
             </tr>
             <tr>
-              <td
-                colSpan={2}
-                className="px-4 py-2 text-right text-sm text-muted-foreground"
-              >
-                Tax
-              </td>
-              <td
-                colSpan={3}
-                className="px-4 py-2 text-right font-mono font-medium"
-              >
+              <td colSpan={2} className="px-4 py-2 text-right text-sm text-muted-foreground">Tax</td>
+              <td colSpan={3} className="px-4 py-2 text-right font-mono font-medium">
                 {parseFloat(invoice.taxAmount).toFixed(2)}
               </td>
             </tr>
             <tr>
-              <td
-                colSpan={2}
-                className="px-4 py-2 text-right text-sm font-semibold"
-              >
-                Total
-              </td>
-              <td
-                colSpan={3}
-                className="px-4 py-2 text-right font-mono font-semibold"
-              >
+              <td colSpan={2} className="px-4 py-2 text-right text-sm font-semibold">Total ({invoice.currencyCode})</td>
+              <td colSpan={3} className="px-4 py-2 text-right font-mono font-semibold">
                 {parseFloat(invoice.total).toFixed(2)}
               </td>
             </tr>
           </tfoot>
         </table>
       </div>
+
+      {canRecordPayment && (
+        <PaymentDialog
+          key={paymentKey}
+          open={paymentOpen}
+          onOpenChange={handlePaymentOpenChange}
+          direction="inbound"
+          postedBills={[]}
+          postedInvoices={postedInvoice}
+          bankAccounts={bankAccounts}
+        />
+      )}
     </div>
   );
 }

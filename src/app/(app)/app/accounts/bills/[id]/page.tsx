@@ -65,20 +65,45 @@ export default async function BillDetailPage({
     user.permissions.includes("accounts:bill:update") ||
     user.permissions.includes("accounts:bill:create");
 
-  // Posted bills → read-only detail view
+  // Non-draft bills → read-only detail view with payment option
   if (bill.status !== "draft") {
+    const canRecordPayment =
+      bill.status === "posted" &&
+      user.permissions.includes("accounts:payment:create");
+
+    const [bankAccountRows, vendorRows] = await Promise.all([
+      canRecordPayment
+        ? db
+            .select({ id: accounts.id, name: accounts.name, code: accounts.code })
+            .from(accounts)
+            .where(and(eq(accounts.tenantId, user.tenant_id), eq(accounts.isBank, true), eq(accounts.isActive, true)))
+            .orderBy(accounts.code)
+        : Promise.resolve([] as { id: string; name: string; code: string }[]),
+      db
+        .select({ name: contacts.name })
+        .from(contacts)
+        .where(eq(contacts.id, bill.vendorId))
+        .limit(1),
+    ]);
+
     return (
       <div className="p-6">
-        <BillDetail bill={bill} lines={lineRows} />
+        <BillDetail
+          bill={bill}
+          lines={lineRows}
+          bankAccounts={bankAccountRows}
+          vendorName={vendorRows[0]?.name ?? null}
+          canRecordPayment={canRecordPayment}
+        />
       </div>
     );
   }
 
-  // Draft bills with manage permission → editable form
+  // Draft bills without manage permission → read-only
   if (!canManage) {
     return (
       <div className="p-6">
-        <BillDetail bill={bill} lines={lineRows} />
+        <BillDetail bill={bill} lines={lineRows} bankAccounts={[]} vendorName={null} canRecordPayment={false} />
       </div>
     );
   }
