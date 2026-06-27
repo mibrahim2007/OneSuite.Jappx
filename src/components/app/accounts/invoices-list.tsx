@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { deleteInvoiceAction, postInvoiceAction } from "@/server/actions/invoices";
+import { SELECT_CLASS } from "@/lib/ui-constants";
 import type { Invoice } from "@/lib/db/schema";
 
 type InvoiceRow = Invoice & { customerName: string };
@@ -34,11 +35,21 @@ function statusLabel(status: string): string {
 
 export function InvoicesList({ invoices, canCreate, canDelete, canApprove }: InvoicesListProps) {
   const router = useRouter();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [pendingPostIds, setPendingPostIds] = useState<Set<string>>(new Set());
   const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<string>>(new Set());
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [, startPostTransition] = useTransition();
   const [, startDeleteTransition] = useTransition();
+
+  const filtered = invoices.filter((inv) => {
+    const q = search.toLowerCase();
+    return (
+      (!q || inv.invoiceNo.toLowerCase().includes(q) || inv.customerName.toLowerCase().includes(q)) &&
+      (statusFilter === "all" || inv.status === statusFilter)
+    );
+  });
 
   function handlePost(id: string) {
     setPendingPostIds((s) => new Set(s).add(id));
@@ -103,6 +114,40 @@ export function InvoicesList({ invoices, canCreate, canDelete, canApprove }: Inv
         )}
       </div>
 
+      {invoices.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="search"
+            placeholder="Search invoice no or customer…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex h-8 w-64 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className={SELECT_CLASS + " w-36"}
+          >
+            <option value="all">All statuses</option>
+            <option value="draft">Draft</option>
+            <option value="posted">Posted</option>
+            <option value="overdue">Overdue</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          {(search || statusFilter !== "all") && (
+            <button
+              onClick={() => { setSearch(""); setStatusFilter("all"); }}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Clear
+            </button>
+          )}
+          <span className="ml-auto text-xs text-muted-foreground">
+            {filtered.length} of {invoices.length}
+          </span>
+        </div>
+      )}
+
       {invoices.length === 0 ? (
         <EmptyState
           icon={ReceiptText}
@@ -116,6 +161,14 @@ export function InvoicesList({ invoices, canCreate, canDelete, canApprove }: Inv
             ) : undefined
           }
         />
+      ) : filtered.length === 0 ? (
+        <div className="rounded-md border">
+          <EmptyState
+            icon={ReceiptText}
+            title="No matching invoices"
+            description="Try adjusting your search or status filter."
+          />
+        </div>
       ) : (
         <div className="rounded-md border overflow-hidden">
           <table className="w-full text-sm">
@@ -145,7 +198,7 @@ export function InvoicesList({ invoices, canCreate, canDelete, canApprove }: Inv
               </tr>
             </thead>
             <tbody className="divide-y">
-              {invoices.map((invoice) => {
+              {filtered.map((invoice) => {
                 const isPostPending = pendingPostIds.has(invoice.id);
                 const isDeletePending = pendingDeleteIds.has(invoice.id);
                 const isConfirmingDelete = confirmDeleteId === invoice.id;
