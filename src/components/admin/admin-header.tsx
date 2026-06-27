@@ -128,14 +128,14 @@ export function AdminHeader({
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onSelect={() => router.push("/app/settings/security" as Route)}
+              onClick={() => router.push("/app/settings/security" as Route)}
             >
               <Settings className="mr-2 size-4" aria-hidden="true" />
               Profile &amp; Settings
             </DropdownMenuItem>
 
             <DropdownMenuItem
-              onSelect={() => router.push("/app/settings/security" as Route)}
+              onClick={() => router.push("/app/settings/security" as Route)}
             >
               <Shield className="mr-2 size-4" aria-hidden="true" />
               Security
@@ -144,7 +144,7 @@ export function AdminHeader({
             <DropdownMenuSeparator />
 
             <DropdownMenuItem
-              onSelect={() => {
+              onClick={() => {
                 window.location.href = "/api/auth/logout";
               }}
             >

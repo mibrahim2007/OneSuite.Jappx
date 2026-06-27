@@ -159,7 +159,7 @@ export function AppHeader({
               <DropdownMenuSeparator />
 
               <DropdownMenuItem
-                onSelect={() =>
+                onClick={() =>
                   router.push("/app/settings/security" as Route)
                 }
               >
@@ -168,7 +168,7 @@ export function AppHeader({
               </DropdownMenuItem>
 
               <DropdownMenuItem
-                onSelect={() =>
+                onClick={() =>
                   router.push("/app/settings/security" as Route)
                 }
               >
@@ -179,7 +179,7 @@ export function AppHeader({
               <DropdownMenuSeparator />
 
               <DropdownMenuItem
-                onSelect={() => {
+                onClick={() => {
                   window.location.href = "/api/auth/logout";
                 }}
               >

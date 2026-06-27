@@ -78,7 +78,7 @@ export function OrgSwitcher({ memberships, currentTenantId }: OrgSwitcherProps) 
         {memberships.map((m) => (
           <DropdownMenuItem
             key={m.tenantId}
-            onSelect={() => {
+            onClick={() => {
               if (m.tenantId !== currentTenantId) handleSwitch(m.tenantId);
             }}
             className="flex items-center gap-2.5"
