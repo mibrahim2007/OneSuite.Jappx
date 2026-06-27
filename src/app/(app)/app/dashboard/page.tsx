@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { eq, desc, sum, count, and, isNull, or } from "drizzle-orm";
+import { eq, desc, sum, count, and, isNull, or, sql } from "drizzle-orm";
 import {
   Banknote,
   ReceiptText,
@@ -34,6 +34,10 @@ import { ModuleBlockedToast } from "@/components/app/module-blocked-toast";
 import { KpiCard } from "@/components/app/dashboard/kpi-card";
 import { QuickActions, QUICK_ACTIONS } from "@/components/app/dashboard/quick-actions";
 import { ActivityFeed } from "@/components/app/dashboard/activity-feed";
+import { RevenueChart } from "@/components/app/dashboard/revenue-chart";
+import { TripsChart } from "@/components/app/dashboard/trips-chart";
+import type { MonthlyPoint } from "@/components/app/dashboard/revenue-chart";
+import type { TripPoint } from "@/components/app/dashboard/trips-chart";
 
 // Re-exported so KpiCard sections stay typed
 type KpiItem = {
@@ -91,6 +95,10 @@ export default async function DashboardPage({
     itemCountRow,
     unreadNotifsRow,
     enabledModulesRow,
+    // Trends
+    revenueByMonth,
+    expensesByMonth,
+    tripsByMonth,
   ] = await Promise.all([
     // Activity feed
     db
@@ -204,6 +212,57 @@ export default async function DashboardPage({
         )
       )
       .limit(1),
+
+    // Trends — monthly posted revenue (last 6 months)
+    db
+      .select({
+        month: sql<string>`to_char(${invoices.invoiceDate}::date, 'YYYY-MM')`,
+        total: sql<string>`sum(${invoices.total})::text`,
+      })
+      .from(invoices)
+      .where(
+        and(
+          eq(invoices.tenantId, tid),
+          eq(invoices.status, "posted"),
+          sql`${invoices.invoiceDate}::date >= date_trunc('month', now()) - interval '5 months'`
+        )
+      )
+      .groupBy(sql`to_char(${invoices.invoiceDate}::date, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${invoices.invoiceDate}::date, 'YYYY-MM')`),
+
+    // Trends — monthly posted expenses (last 6 months)
+    db
+      .select({
+        month: sql<string>`to_char(${bills.billDate}::date, 'YYYY-MM')`,
+        total: sql<string>`sum(${bills.total})::text`,
+      })
+      .from(bills)
+      .where(
+        and(
+          eq(bills.tenantId, tid),
+          eq(bills.status, "posted"),
+          sql`${bills.billDate}::date >= date_trunc('month', now()) - interval '5 months'`
+        )
+      )
+      .groupBy(sql`to_char(${bills.billDate}::date, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${bills.billDate}::date, 'YYYY-MM')`),
+
+    // Trends — monthly trips (last 6 months)
+    db
+      .select({
+        month: sql<string>`to_char(${trips.startAt}::date, 'YYYY-MM')`,
+        cnt: sql<string>`count(*)::text`,
+      })
+      .from(trips)
+      .where(
+        and(
+          eq(trips.tenantId, tid),
+          sql`${trips.startAt} is not null`,
+          sql`${trips.startAt}::date >= date_trunc('month', now()) - interval '5 months'`
+        )
+      )
+      .groupBy(sql`to_char(${trips.startAt}::date, 'YYYY-MM')`)
+      .orderBy(sql`to_char(${trips.startAt}::date, 'YYYY-MM')`),
   ]);
 
   // ── Derived values ────────────────────────────────────────────────────────
@@ -232,6 +291,31 @@ export default async function DashboardPage({
   const itemCount        = itemCountRow[0]?.v        ?? 0;
   const unreadNotifs     = unreadNotifsRow[0]?.v     ?? 0;
   const enabledModCount  = (enabledModulesRow[0]?.enabledModules ?? []).length;
+
+  // ── Trend chart data ─────────────────────────────────────────────────────
+
+  // Build last-6-months spine so missing months show as 0
+  const last6: string[] = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - (5 - i));
+    return d.toISOString().slice(0, 7);
+  });
+
+  const revMap = new Map(revenueByMonth.map((r) => [r.month, parseFloat(r.total) || 0]));
+  const expMap = new Map(expensesByMonth.map((r) => [r.month, parseFloat(r.total) || 0]));
+  const trpMap = new Map(tripsByMonth.map((r) => [r.month, parseInt(r.cnt, 10) || 0]));
+
+  const revenueChartData: MonthlyPoint[] = last6.map((m) => ({
+    month: m,
+    revenue: revMap.get(m) ?? 0,
+    expenses: expMap.get(m) ?? 0,
+  }));
+
+  const tripsChartData: TripPoint[] = last6.map((m) => ({
+    month: m,
+    trips: trpMap.get(m) ?? 0,
+  }));
 
   // ── KPI definitions ───────────────────────────────────────────────────────
 
@@ -373,6 +457,28 @@ export default async function DashboardPage({
             {GENERIC_KPIS.map((kpi) => (
               <KpiCard key={kpi.title} {...kpi} />
             ))}
+          </div>
+        </section>
+      )}
+
+      {(hasAccountsPerms || hasFleetPerms) && (
+        <section aria-labelledby="trends-heading">
+          <h2 id="trends-heading" className="text-lg font-semibold mb-4">
+            Trends — Last 6 Months
+          </h2>
+          <div className={`grid gap-4 ${hasAccountsPerms && hasFleetPerms ? "lg:grid-cols-3" : "grid-cols-1"}`}>
+            {hasAccountsPerms && (
+              <div className={`rounded-lg border bg-card p-4 ${hasFleetPerms ? "lg:col-span-2" : ""}`}>
+                <p className="text-sm font-medium text-muted-foreground mb-3">Revenue vs Expenses (PKR)</p>
+                <RevenueChart data={revenueChartData} />
+              </div>
+            )}
+            {hasFleetPerms && (
+              <div className="rounded-lg border bg-card p-4">
+                <p className="text-sm font-medium text-muted-foreground mb-3">Trips per Month</p>
+                <TripsChart data={tripsChartData} />
+              </div>
+            )}
           </div>
         </section>
       )}
