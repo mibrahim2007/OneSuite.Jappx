@@ -9,6 +9,8 @@ import { bills } from "@/lib/db/schema/bills";
 import { invoices } from "@/lib/db/schema/invoices";
 import { purchaseOrders } from "@/lib/db/schema/procurement";
 import { leads } from "@/lib/db/schema/crm";
+import { employees } from "@/lib/db/schema/hrm";
+import { vehicles } from "@/lib/db/schema/fleet";
 
 export type SearchResult = {
   type: string;
@@ -31,45 +33,83 @@ export async function GET(req: NextRequest) {
   const pat = `%${q}%`;
   const results: SearchResult[] = [];
 
-  const [contactRows, itemRows, leadRows, billRows, invoiceRows, poRows] =
-    await Promise.all([
-      db
-        .select({ id: contacts.id, name: contacts.name, code: contacts.code, type: contacts.type })
-        .from(contacts)
-        .where(and(eq(contacts.tenantId, tid), or(ilike(contacts.name, pat), ilike(contacts.code, pat))))
-        .limit(5),
+  const [
+    contactRows,
+    itemRows,
+    leadRows,
+    billRows,
+    invoiceRows,
+    poRows,
+    employeeRows,
+    vehicleRows,
+  ] = await Promise.all([
+    db
+      .select({ id: contacts.id, name: contacts.name, code: contacts.code, type: contacts.type })
+      .from(contacts)
+      .where(and(eq(contacts.tenantId, tid), or(ilike(contacts.name, pat), ilike(contacts.code, pat))))
+      .limit(5),
 
-      db
-        .select({ id: items.id, sku: items.sku, name: items.name })
-        .from(items)
-        .where(and(eq(items.tenantId, tid), or(ilike(items.sku, pat), ilike(items.name, pat))))
-        .limit(5),
+    db
+      .select({ id: items.id, sku: items.sku, name: items.name })
+      .from(items)
+      .where(and(eq(items.tenantId, tid), or(ilike(items.sku, pat), ilike(items.name, pat))))
+      .limit(5),
 
-      db
-        .select({ id: leads.id, name: leads.name, company: leads.company })
-        .from(leads)
-        .where(and(eq(leads.tenantId, tid), or(ilike(leads.name, pat), ilike(leads.company, pat))))
-        .limit(5),
+    db
+      .select({ id: leads.id, name: leads.name, company: leads.company })
+      .from(leads)
+      .where(and(eq(leads.tenantId, tid), or(ilike(leads.name, pat), ilike(leads.company, pat))))
+      .limit(5),
 
-      db
-        .select({ id: bills.id, billNo: bills.billNo })
-        .from(bills)
-        .where(and(eq(bills.tenantId, tid), ilike(bills.billNo, pat)))
-        .limit(5),
+    db
+      .select({ id: bills.id, billNo: bills.billNo })
+      .from(bills)
+      .where(and(eq(bills.tenantId, tid), ilike(bills.billNo, pat)))
+      .limit(5),
 
-      db
-        .select({ id: invoices.id, invoiceNo: invoices.invoiceNo })
-        .from(invoices)
-        .where(and(eq(invoices.tenantId, tid), ilike(invoices.invoiceNo, pat)))
-        .limit(5),
+    db
+      .select({ id: invoices.id, invoiceNo: invoices.invoiceNo })
+      .from(invoices)
+      .where(and(eq(invoices.tenantId, tid), ilike(invoices.invoiceNo, pat)))
+      .limit(5),
 
-      db
-        .select({ id: purchaseOrders.id, poNo: purchaseOrders.poNo })
-        .from(purchaseOrders)
-        .where(and(eq(purchaseOrders.tenantId, tid), ilike(purchaseOrders.poNo, pat)))
-        .limit(5),
-    ]);
+    db
+      .select({ id: purchaseOrders.id, poNo: purchaseOrders.poNo })
+      .from(purchaseOrders)
+      .where(and(eq(purchaseOrders.tenantId, tid), ilike(purchaseOrders.poNo, pat)))
+      .limit(5),
 
+    db
+      .select({ id: employees.id, empCode: employees.empCode, fullName: employees.fullName })
+      .from(employees)
+      .where(and(eq(employees.tenantId, tid), or(ilike(employees.fullName, pat), ilike(employees.empCode, pat))))
+      .limit(5),
+
+    db
+      .select({ id: vehicles.id, regNumber: vehicles.regNumber, make: vehicles.make, model: vehicles.model })
+      .from(vehicles)
+      .where(and(eq(vehicles.tenantId, tid), or(ilike(vehicles.regNumber, pat), ilike(vehicles.make, pat), ilike(vehicles.model, pat))))
+      .limit(5),
+  ]);
+
+  for (const r of invoiceRows) {
+    results.push({
+      type: "Invoice",
+      id: r.id,
+      title: r.invoiceNo,
+      subtitle: null,
+      href: `/app/accounts/invoices/${r.id}`,
+    });
+  }
+  for (const r of billRows) {
+    results.push({
+      type: "Bill",
+      id: r.id,
+      title: r.billNo,
+      subtitle: null,
+      href: `/app/accounts/bills/${r.id}`,
+    });
+  }
   for (const r of contactRows) {
     results.push({
       type: "Contact",
@@ -79,13 +119,22 @@ export async function GET(req: NextRequest) {
       href: `/app/accounts/contacts`,
     });
   }
-  for (const r of itemRows) {
+  for (const r of vehicleRows) {
     results.push({
-      type: "Item",
+      type: "Vehicle",
       id: r.id,
-      title: r.name,
-      subtitle: r.sku,
-      href: `/app/inventory/items`,
+      title: r.regNumber,
+      subtitle: [r.make, r.model].filter(Boolean).join(" ") || null,
+      href: `/app/fleet/vehicles/${r.id}`,
+    });
+  }
+  for (const r of employeeRows) {
+    results.push({
+      type: "Employee",
+      id: r.id,
+      title: r.fullName,
+      subtitle: r.empCode,
+      href: `/app/hrm/employees`,
     });
   }
   for (const r of leadRows) {
@@ -97,22 +146,13 @@ export async function GET(req: NextRequest) {
       href: `/app/crm/leads`,
     });
   }
-  for (const r of billRows) {
+  for (const r of itemRows) {
     results.push({
-      type: "Bill",
+      type: "Item",
       id: r.id,
-      title: r.billNo,
-      subtitle: null,
-      href: `/app/accounts/bills`,
-    });
-  }
-  for (const r of invoiceRows) {
-    results.push({
-      type: "Invoice",
-      id: r.id,
-      title: r.invoiceNo,
-      subtitle: null,
-      href: `/app/accounts/invoices`,
+      title: r.name,
+      subtitle: r.sku,
+      href: `/app/inventory/items`,
     });
   }
   for (const r of poRows) {

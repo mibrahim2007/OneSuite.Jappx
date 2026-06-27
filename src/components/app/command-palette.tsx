@@ -3,7 +3,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import type { Route } from "next";
-import { Search } from "lucide-react";
+import {
+  Search,
+  ReceiptText,
+  FileInput,
+  User,
+  Truck,
+  UserCheck,
+  Target,
+  Package,
+  ShoppingCart,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +28,17 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import type { SearchResult } from "@/app/api/search/route";
+
+const RESULT_ICONS: Record<string, LucideIcon> = {
+  Invoice: ReceiptText,
+  Bill: FileInput,
+  Contact: User,
+  Vehicle: Truck,
+  Employee: UserCheck,
+  Lead: Target,
+  Item: Package,
+  "Purchase Order": ShoppingCart,
+};
 
 const RECENT_KEY = "app-recent-pages";
 const MAX_RECENT = 5;
@@ -195,23 +217,27 @@ export function CommandPalette({ navItems }: { navItems: NavItem[] }) {
 
                 {!searching && searchResults.length > 0 && (
                   <CommandGroup heading="Records">
-                    {searchResults.map((r) => (
-                      <CommandItem
-                        key={`${r.type}-${r.id}`}
-                        value={`${r.type}-${r.id}`}
-                        onSelect={() => navigate(r.href)}
-                      >
-                        <span className="text-xs text-muted-foreground w-24 shrink-0">
-                          {r.type}
-                        </span>
-                        <span className="font-medium">{r.title}</span>
-                        {r.subtitle && (
-                          <span className="ml-2 text-xs text-muted-foreground">
-                            {r.subtitle}
+                    {searchResults.map((r) => {
+                      const Icon = RESULT_ICONS[r.type] ?? Search;
+                      return (
+                        <CommandItem
+                          key={`${r.type}-${r.id}`}
+                          value={`${r.type}-${r.id}`}
+                          onSelect={() => navigate(r.href)}
+                        >
+                          <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <span className="font-medium">{r.title}</span>
+                          {r.subtitle && (
+                            <span className="ml-1.5 text-xs text-muted-foreground truncate">
+                              {r.subtitle}
+                            </span>
+                          )}
+                          <span className="ml-auto text-[10px] text-muted-foreground/60 shrink-0">
+                            {r.type}
                           </span>
-                        )}
-                      </CommandItem>
-                    ))}
+                        </CommandItem>
+                      );
+                    })}
                   </CommandGroup>
                 )}
 
